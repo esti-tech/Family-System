@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-playfair: 'Playfair Display', Georgia, serif;
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --bg-ivory: #F6F1E9;
+  --gold-primary: #C18B58;
+  --charcoal: #343434;
+}
+
+body {
+  color: var(--charcoal);
+  background-color: var(--bg-ivory);
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-playfair);
+}
+
+/* Subtle Ethiopian cross motif / geometric pattern styling */
+.ethiopian-pattern-overlay {
+  background-color: #F6F1E9;
+  background-image: radial-gradient(#C18B58 0.65px, transparent 0.65px), radial-gradient(#C18B58 0.65px, #F6F1E9 0.65px);
+  background-size: 26px 26px;
+  background-position: 0 0, 13px 13px;
+  opacity: 0.12;
+}
