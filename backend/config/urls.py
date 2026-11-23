@@ -12,5 +12,7 @@ urlpatterns = [
 
     # API v1 Versioned Endpoints
     path('api/v1/auth/', include('apps.accounts.urls')),
-    # Other apps will be hooked up in their respective phases
+    path('api/v1/families/', include('apps.families.urls')),
+    path('api/v1/invitations/', include('apps.families.urls')),
+
 ]
