@@ -5,246 +5,309 @@ import { useParams } from "next/navigation";
 import {
   Users,
   GitFork,
+  BookOpen,
   Image as ImageIcon,
   Calendar,
-  Plus,
-  Upload,
-  HardDrive,
-  ArrowRight,
   Sparkles,
+  ArrowRight,
+  Plus,
+  Mic,
+  QrCode,
+  Clock,
+  Heart,
 } from "lucide-react";
 
 export default function FamilyDashboardPage() {
   const params = useParams();
-  const familySlug = (params?.familySlug as string) || "family";
+  const slug = (params?.familySlug as string) || "bekele-family";
 
-  // Nicely format the title
-  const familyName = familySlug
+  // Derive title from slug
+  const familyName = slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
   return (
-    <div className="space-y-8">
-      {/* 1. Hero Welcome Banner */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-charcoal-900 via-charcoal-800 to-charcoal-900 p-8 sm:p-10 text-white shadow-card">
-        <div className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay bg-[url('https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=80')]" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-gold-500/20 text-gold-300 text-xs font-semibold tracking-wider uppercase border border-gold-400/30">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Living Family Archive</span>
-            </div>
-            <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight">
-              Welcome to {familyName}
-            </h1>
-            <p className="text-xs sm:text-sm text-ivory-200/90 leading-relaxed">
-              Explore your living lineage, listen to elder oral recordings, and collaborate with relatives across generations.
-            </p>
+    <div className="space-y-8 pb-12">
+      {/* 1. WELCOME HERO BANNER (Figma Page 56) */}
+      <div className="relative rounded-2xl overflow-hidden bg-[#2B2B2B] text-white p-8 sm:p-10 shadow-sm border border-[#EAE3D6]">
+        {/* Subtle decorative background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-0" />
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay z-0"
+          style={{ backgroundImage: "url('/assets/images/hero-family.jpeg')" }}
+        />
+
+        <div className="relative z-10 max-w-2xl space-y-4">
+          <div className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest px-2.5 py-1 rounded bg-white/10 text-[#EAE3D6] font-semibold border border-white/20">
+            <Sparkles className="w-3.5 h-3.5 text-[#C18B58]" />
+            <span>ROOTED IN GONDAR & ADDIS ABABA · ESTABLISHED 1948</span>
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap sm:flex-nowrap gap-3 shrink-0">
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-normal leading-tight">
+            {familyName} Archive
+          </h1>
+
+          <p className="text-sm text-[#EAE3D6] font-light leading-relaxed">
+            One shared home for four generations of stories, photographs, wedding memories, and the living branches of our family tree.
+          </p>
+
+          <div className="pt-2 flex flex-wrap gap-3">
             <Link
-              href={`/${familySlug}/tree`}
-              className="inline-flex items-center px-4 py-2.5 rounded-lg bg-gold-500 hover:bg-gold-600 text-white text-xs font-semibold shadow-sm transition-all"
+              href={`/${slug}/tree`}
+              className="inline-flex items-center px-4 py-2 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors space-x-1.5"
             >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Add Person
+              <GitFork className="w-3.5 h-3.5" />
+              <span>Explore Family Tree</span>
             </Link>
             <Link
-              href={`/${familySlug}/memories`}
-              className="inline-flex items-center px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-all backdrop-blur-xs"
+              href={`/${slug}/members/invite`}
+              className="inline-flex items-center px-4 py-2 rounded-md bg-white/15 hover:bg-white/25 text-white text-xs font-medium border border-white/20 transition-colors space-x-1.5"
             >
-              <Upload className="w-4 h-4 mr-1.5" />
-              Upload Memory
+              <Users className="w-3.5 h-3.5" />
+              <span>Invite Relative</span>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* 2. KPI Cards */}
+      {/* 2. FOUR KEY METRIC TILES */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-border shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">Members</span>
-            <div className="w-8 h-8 rounded-lg bg-gold-100 text-gold-600 flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
+        <div className="bg-white p-5 rounded-xl border border-[#EAE3D6] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+          <div className="w-9 h-9 rounded-lg bg-[#F6F1E9] text-[#C18B58] flex items-center justify-center mb-3">
+            <GitFork className="w-5 h-5" />
           </div>
-          <div className="text-3xl font-bold font-serif text-charcoal-900">14</div>
-          <p className="text-[11px] text-charcoal-700">Across 3 countries</p>
+          <span className="text-[11px] uppercase tracking-wider text-[#7A7A7A] font-semibold">
+            Generations
+          </span>
+          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">4 Mapped</p>
+          <span className="text-[11px] text-[#5A5A5A]">Root: Bekele Wolde (1918)</span>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-border shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">Generations</span>
-            <div className="w-8 h-8 rounded-lg bg-gold-100 text-gold-600 flex items-center justify-center">
-              <GitFork className="w-4 h-4" />
-            </div>
+        <div className="bg-white p-5 rounded-xl border border-[#EAE3D6] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+          <div className="w-9 h-9 rounded-lg bg-[#F6F1E9] text-[#C18B58] flex items-center justify-center mb-3">
+            <Users className="w-5 h-5" />
           </div>
-          <div className="text-3xl font-bold font-serif text-charcoal-900">4</div>
-          <p className="text-[11px] text-charcoal-700">Oldest born 1918</p>
+          <span className="text-[11px] uppercase tracking-wider text-[#7A7A7A] font-semibold">
+            Family Members
+          </span>
+          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">24 Active</p>
+          <span className="text-[11px] text-emerald-600 font-medium">3 pending invitations</span>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-border shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">Memories</span>
-            <div className="w-8 h-8 rounded-lg bg-gold-100 text-gold-600 flex items-center justify-center">
-              <ImageIcon className="w-4 h-4" />
-            </div>
+        <div className="bg-white p-5 rounded-xl border border-[#EAE3D6] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+          <div className="w-9 h-9 rounded-lg bg-[#F6F1E9] text-[#C18B58] flex items-center justify-center mb-3">
+            <BookOpen className="w-5 h-5" />
           </div>
-          <div className="text-3xl font-bold font-serif text-charcoal-900">128</div>
-          <p className="text-[11px] text-charcoal-700">Photos, audio & video</p>
+          <span className="text-[11px] uppercase tracking-wider text-[#7A7A7A] font-semibold">
+            Oral Stories & Audio
+          </span>
+          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">16 Recorded</p>
+          <span className="text-[11px] text-[#5A5A5A]">4 coffee ceremonies</span>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-border shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">Upcoming Events</span>
-            <div className="w-8 h-8 rounded-lg bg-gold-100 text-gold-600 flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
+        <div className="bg-white p-5 rounded-xl border border-[#EAE3D6] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+          <div className="w-9 h-9 rounded-lg bg-[#F6F1E9] text-[#C18B58] flex items-center justify-center mb-3">
+            <ImageIcon className="w-5 h-5" />
           </div>
-          <div className="text-3xl font-bold font-serif text-charcoal-900">2</div>
-          <p className="text-[11px] text-charcoal-700">Wedding & Coffee Gathering</p>
+          <span className="text-[11px] uppercase tracking-wider text-[#7A7A7A] font-semibold">
+            Memory Vault
+          </span>
+          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">142 Photos</p>
+          <span className="text-[11px] text-[#5A5A5A]">7 vintage albums</span>
         </div>
       </div>
 
-      {/* 3. Middle Grid: Family Tree Preview & Upcoming Gathering */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Family Tree Preview (8 cols) */}
-        <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-border shadow-card flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-serif text-lg font-bold text-charcoal-900">Lineage & Family Tree</h3>
-              <p className="text-xs text-charcoal-700">Direct biological and partner connections</p>
-            </div>
-            <Link
-              href={`/${familySlug}/tree`}
-              className="text-xs font-bold text-gold-600 hover:text-gold-700 inline-flex items-center"
-            >
-              Open Interactive Tree <ArrowRight className="w-3.5 h-3.5 ml-1" />
-            </Link>
-          </div>
-
-          {/* Graphical Miniature Preview */}
-          <div className="h-64 rounded-xl bg-ivory-50 border border-border/80 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            <div className="ethiopian-pattern-overlay absolute inset-0" />
-            <div className="relative z-10 flex flex-col items-center space-y-4">
-              {/* Grandparent Node */}
-              <div className="px-4 py-2 rounded-xl bg-white border border-gold-300 shadow-xs text-center">
-                <span className="text-xs font-bold font-serif text-charcoal-900">Abebe Bekele</span>
-                <span className="block text-[10px] text-charcoal-700">1924 - 2008 (Grandfather)</span>
+      {/* 3. TWO-COLUMN MAIN WORKSPACE DASHBOARD */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column (8 cols): Recent Stories & Oral Histories */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Recent Oral Stories Card */}
+          <div className="bg-white rounded-xl border border-[#EAE3D6] p-6 shadow-xs">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#F6F1E9]">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-[#2B2B2B]">
+                  Recent Stories & Elder Voices
+                </h3>
+                <p className="text-xs text-[#5A5A5A] font-light mt-0.5">
+                  Wisdom and recollections captured directly from our family elders.
+                </p>
               </div>
-              <div className="w-0.5 h-6 bg-gold-400" />
-              {/* Parents Node */}
-              <div className="flex items-center space-x-6">
-                <div className="px-4 py-2 rounded-xl bg-white border border-border shadow-xs text-center">
-                  <span className="text-xs font-bold font-serif text-charcoal-900">Solomon Abebe</span>
-                  <span className="block text-[10px] text-charcoal-700">Father</span>
-                </div>
-                <span className="text-xs font-serif text-gold-600 font-bold">&</span>
-                <div className="px-4 py-2 rounded-xl bg-white border border-border shadow-xs text-center">
-                  <span className="text-xs font-bold font-serif text-charcoal-900">Almaz Tefera</span>
-                  <span className="block text-[10px] text-charcoal-700">Mother</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Storage Quota Card (4 cols) */}
-        <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-border shadow-card flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-serif text-lg font-bold text-charcoal-900">Storage Usage</h3>
-              <HardDrive className="w-4 h-4 text-gold-600" />
+              <Link
+                href={`/${slug}/stories`}
+                className="text-xs font-semibold text-[#C18B58] hover:underline flex items-center"
+              >
+                View all stories <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              </Link>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs mb-1.5 font-medium">
-                  <span className="text-charcoal-700">1.2 GB of 2.0 GB used</span>
-                  <span className="text-gold-600 font-bold">60%</span>
-                </div>
-                <div className="w-full bg-ivory-200 h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-gold-500 h-full rounded-full transition-all duration-500 w-[60%]" />
+              {/* Story 1 */}
+              <div className="p-4 rounded-lg bg-[#F6F1E9]/50 border border-[#EAE3D6] flex items-start justify-between">
+                <div className="flex items-start space-x-3.5">
+                  <div className="w-10 h-10 rounded-full bg-[#C18B58] text-white flex items-center justify-center font-serif font-bold text-sm shrink-0">
+                    A
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-sm text-[#2B2B2B]">
+                      The Sunday Morning Coffee Ceremony in Gondar
+                    </h4>
+                    <p className="text-xs text-[#5A5A5A] mt-1 line-clamp-2 font-light">
+                      Grandmother Almaz recounts how her mother roasted fresh green beans over charcoal, the three rounds of Abol, Tona, and Baraka, and how neighbors joined.
+                    </p>
+                    <div className="flex items-center space-x-4 mt-2.5 text-[11px] text-[#7A7A7A]">
+                      <span className="flex items-center text-[#C18B58] font-medium">
+                        <Mic className="w-3.5 h-3.5 mr-1" /> 14 min audio
+                      </span>
+                      <span>Recorded by Dawit Bekele</span>
+                      <span>Nov 18, 2026</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="text-xs text-charcoal-700 space-y-2 pt-2 border-t border-border">
-                <div className="flex justify-between">
-                  <span>Photographs (86 items)</span>
-                  <span className="font-medium text-charcoal-900">820 MB</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Oral Audio (12 recordings)</span>
-                  <span className="font-medium text-charcoal-900">310 MB</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Family Documents</span>
-                  <span className="font-medium text-charcoal-900">70 MB</span>
+              {/* Story 2 */}
+              <div className="p-4 rounded-lg bg-[#F6F1E9]/50 border border-[#EAE3D6] flex items-start justify-between">
+                <div className="flex items-start space-x-3.5">
+                  <div className="w-10 h-10 rounded-full bg-[#343434] text-white flex items-center justify-center font-serif font-bold text-sm shrink-0">
+                    B
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-sm text-[#2B2B2B]">
+                      How Our Grandparents Met at the Meskel Celebration (1964)
+                    </h4>
+                    <p className="text-xs text-[#5A5A5A] mt-1 line-clamp-2 font-light">
+                      The story of Bekele Wolde and Almaz Tesfaye meeting by the Demera fire in Meskel Square, recorded on their 50th anniversary.
+                    </p>
+                    <div className="flex items-center space-x-4 mt-2.5 text-[11px] text-[#7A7A7A]">
+                      <span>Written story & 3 photos</span>
+                      <span>Curated by Selam Bekele</span>
+                      <span>Nov 12, 2026</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-border mt-4">
+          {/* Upcoming Family Celebrations */}
+          <div className="bg-white rounded-xl border border-[#EAE3D6] p-6 shadow-xs">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#F6F1E9]">
+              <h3 className="font-serif text-lg font-bold text-[#2B2B2B]">
+                Upcoming Milestones & Celebrations
+              </h3>
+              <Link
+                href={`/${slug}/events`}
+                className="text-xs font-semibold text-[#C18B58] hover:underline"
+              >
+                Add Event +
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-3.5 rounded-lg border border-[#EAE3D6] flex items-start space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-[#F6F1E9] text-[#C18B58] flex flex-col items-center justify-center shrink-0">
+                  <span className="text-[10px] font-bold uppercase">DEC</span>
+                  <span className="text-sm font-serif font-bold leading-none">14</span>
+                </div>
+                <div>
+                  <h5 className="font-serif font-bold text-xs text-[#2B2B2B]">
+                    Grandmother Almaz’s 82nd Birthday
+                  </h5>
+                  <p className="text-[11px] text-[#7A7A7A] mt-0.5">Family gathering in Addis Ababa & Zoom</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-lg border border-[#EAE3D6] flex items-start space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-[#F6F1E9] text-[#C18B58] flex flex-col items-center justify-center shrink-0">
+                  <span className="text-[10px] font-bold uppercase">JAN</span>
+                  <span className="text-sm font-serif font-bold leading-none">07</span>
+                </div>
+                <div>
+                  <h5 className="font-serif font-bold text-xs text-[#2B2B2B]">
+                    Ethiopian Christmas (Genna) Celebration
+                  </h5>
+                  <p className="text-[11px] text-[#7A7A7A] mt-0.5">Communal dinner and storytelling</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column (4 cols): Quick Actions & Activity Feed */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl border border-[#EAE3D6] p-6 shadow-xs space-y-3">
+            <h3 className="font-serif text-sm font-bold text-[#2B2B2B] mb-2 uppercase tracking-wider">
+              Quick Actions
+            </h3>
             <Link
-              href={`/${familySlug}/billing`}
-              className="w-full block text-center py-2 rounded-lg border border-gold-500 text-gold-700 hover:bg-gold-50 text-xs font-semibold transition-colors"
+              href={`/${slug}/tree`}
+              className="w-full py-2.5 px-3 rounded-lg border border-[#D5C9B8] text-xs font-medium text-[#2B2B2B] hover:bg-[#F6F1E9] transition-colors flex items-center justify-between"
             >
-              Upgrade Storage Plan
+              <span className="flex items-center">
+                <Plus className="w-3.5 h-3.5 mr-2 text-[#C18B58]" />
+                Add Person to Tree
+              </span>
+              <span className="text-xs">&rarr;</span>
+            </Link>
+            <Link
+              href={`/${slug}/stories`}
+              className="w-full py-2.5 px-3 rounded-lg border border-[#D5C9B8] text-xs font-medium text-[#2B2B2B] hover:bg-[#F6F1E9] transition-colors flex items-center justify-between"
+            >
+              <span className="flex items-center">
+                <Mic className="w-3.5 h-3.5 mr-2 text-[#C18B58]" />
+                Record Elder Audio
+              </span>
+              <span className="text-xs">&rarr;</span>
+            </Link>
+            <Link
+              href={`/${slug}/events`}
+              className="w-full py-2.5 px-3 rounded-lg border border-[#D5C9B8] text-xs font-medium text-[#2B2B2B] hover:bg-[#F6F1E9] transition-colors flex items-center justify-between"
+            >
+              <span className="flex items-center">
+                <QrCode className="w-3.5 h-3.5 mr-2 text-[#C18B58]" />
+                Create Event QR Upload
+              </span>
+              <span className="text-xs">&rarr;</span>
             </Link>
           </div>
-        </div>
-      </div>
 
-      {/* 4. Recent Memories Preview & Activity Feed */}
-      <div className="bg-white p-6 rounded-2xl border border-border shadow-card">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="font-serif text-lg font-bold text-charcoal-900">Recent Family Memories</h3>
-            <p className="text-xs text-charcoal-700">Preserved heirloom photographs and oral recordings</p>
-          </div>
-          <Link
-            href={`/${familySlug}/memories`}
-            className="text-xs font-bold text-gold-600 hover:text-gold-700 inline-flex items-center"
-          >
-            View All Memories <ArrowRight className="w-3.5 h-3.5 ml-1" />
-          </Link>
-        </div>
+          {/* Recent Activity Log */}
+          <div className="bg-white rounded-xl border border-[#EAE3D6] p-6 shadow-xs">
+            <h3 className="font-serif text-sm font-bold text-[#2B2B2B] mb-4 uppercase tracking-wider">
+              Recent Workspace Activity
+            </h3>
+            <div className="space-y-4 text-xs">
+              <div className="flex items-start space-x-3 pb-3 border-b border-[#F6F1E9]">
+                <div className="w-2 h-2 rounded-full bg-[#C18B58] mt-1.5 shrink-0" />
+                <div>
+                  <p className="text-[#2B2B2B]">
+                    <span className="font-semibold">Hana Mekonnen</span> uploaded 4 photographs to <span className="italic">Wedding Memories 1998</span>.
+                  </p>
+                  <span className="text-[10px] text-[#7A7A7A]">3 hours ago</span>
+                </div>
+              </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="group relative rounded-xl overflow-hidden aspect-square bg-charcoal-900 border border-border shadow-xs">
-            <div className="absolute inset-0 bg-cover bg-center bg-[url('https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=400&q=80')]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3 text-white">
-              <span className="text-xs font-bold font-serif truncate">Coffee Ceremony with Grandma</span>
-              <span className="text-[10px] text-ivory-200">October 1994</span>
-            </div>
-          </div>
+              <div className="flex items-start space-x-3 pb-3 border-b border-[#F6F1E9]">
+                <div className="w-2 h-2 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                <div>
+                  <p className="text-[#2B2B2B]">
+                    <span className="font-semibold">Dawit Bekele</span> added kinship connection for <span className="font-semibold">Kalkidan Bekele</span>.
+                  </p>
+                  <span className="text-[10px] text-[#7A7A7A]">Yesterday</span>
+                </div>
+              </div>
 
-          <div className="group relative rounded-xl overflow-hidden aspect-square bg-charcoal-900 border border-border shadow-xs">
-            <div className="absolute inset-0 bg-cover bg-center bg-[url('https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=400&q=80')]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3 text-white">
-              <span className="text-xs font-bold font-serif truncate">Mulugeta & Selam Wedding</span>
-              <span className="text-[10px] text-ivory-200">Gondar, 2012</span>
-            </div>
-          </div>
-
-          <div className="group relative rounded-xl overflow-hidden aspect-square bg-charcoal-900 border border-border shadow-xs">
-            <div className="absolute inset-0 bg-cover bg-center bg-[url('https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=400&q=80')]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3 text-white">
-              <span className="text-xs font-bold font-serif truncate">Oral History: Elder Tale</span>
-              <span className="text-[10px] text-gold-300">Audio • 14 mins</span>
-            </div>
-          </div>
-
-          <div className="group relative rounded-xl overflow-hidden aspect-square bg-charcoal-900 border border-border shadow-xs">
-            <div className="absolute inset-0 bg-cover bg-center bg-[url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=400&q=80')]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3 text-white">
-              <span className="text-xs font-bold font-serif truncate">Addis Reunion</span>
-              <span className="text-[10px] text-ivory-200">January 2024</span>
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                <div>
+                  <p className="text-[#2B2B2B]">
+                    <span className="font-semibold">Selam Bekele</span> created the family workspace.
+                  </p>
+                  <span className="text-[10px] text-[#7A7A7A]">Nov 15, 2026</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

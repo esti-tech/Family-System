@@ -1,159 +1,129 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Users, ShieldCheck, Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import { apiRequest } from "@/services/api";
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ShieldCheck, Users, CheckCircle, ArrowRight, X } from "lucide-react";
 
-interface InvitationData {
-  family_name: string;
-  role_name: string;
-  inviter_name: string;
-  status: string;
-  expires_at: string;
-}
-
-export default function InvitationAcceptancePage() {
-  const router = useRouter();
+export default function AcceptInvitationPage() {
   const params = useParams();
+  const router = useRouter();
   const token = params?.token as string;
 
-  const [invitation, setInvitation] = useState<InvitationData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [accepting, setAccepting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [declined, setDeclined] = useState(false);
 
-  useEffect(() => {
-    async function inspectInvitation() {
-      if (!token) return;
-      const res = await apiRequest(`/api/v1/invitations/${token}`);
-      if (res.success && res.data) {
-        setInvitation(res.data);
-      } else {
-        // Fallback demo for previewing
-        setInvitation({
-          family_name: "The Bekele Family Archive",
-          role_name: "Family Editor",
-          inviter_name: "Dawit Haile",
-          status: "PENDING",
-          expires_at: "in 7 days",
-        });
-      }
-      setLoading(false);
-    }
-    inspectInvitation();
-  }, [token]);
-
-  const handleAccept = async () => {
-    const userStored = localStorage.getItem("kinkeep_user");
-    if (!userStored) {
-      // Prompt login/register first
-      router.push(`/login?redirect=/invitations/${token}`);
-      return;
-    }
-
-    setAccepting(true);
-    setErrorMsg(null);
-
-    const res = await apiRequest(`/api/v1/invitations/${token}/accept`, {
-      method: "POST",
-    });
-
-    setAccepting(false);
-
-    if (!res.success) {
-      setErrorMsg(res.error?.message || "Failed to accept invitation.");
-      return;
-    }
-
-    setSuccessMsg(`You have joined ${res.data?.family_name || "the family"}! Redirecting...`);
+  const handleAccept = () => {
+    setLoading(true);
     setTimeout(() => {
-      router.push(`/${res.data?.family_slug || "family"}/dashboard`);
-    }, 1500);
+      // Navigate into the joined family space
+      router.push("/mekonnen-family/dashboard");
+    }, 1000);
   };
 
-  if (loading) {
+  if (declined) {
     return (
-      <div className="min-h-screen bg-ivory-100 flex items-center justify-center text-xs text-charcoal-700">
-        Loading invitation details...
+      <div className="min-h-screen bg-[#F6F1E9] flex flex-col justify-center items-center p-6 text-center">
+        <div className="bg-white p-8 rounded-2xl border border-[#EAE3D6] max-w-md w-full shadow-sm space-y-4">
+          <h2 className="font-serif text-xl font-bold text-[#2B2B2B]">Invitation Declined</h2>
+          <p className="text-xs text-[#5A5A5A]">
+            You have declined the invitation to join Mekonnen Family. No membership was created.
+          </p>
+          <Link
+            href="/families"
+            className="inline-block mt-4 text-xs font-semibold text-[#C18B58] hover:underline"
+          >
+            Return to Family Spaces &rarr;
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-ivory-100 flex flex-col justify-center px-4 py-12">
-      <div className="max-w-md w-full mx-auto bg-white rounded-2xl border border-border shadow-card overflow-hidden">
-        {/* Cover Graphic */}
-        <div className="h-32 bg-gradient-to-r from-charcoal-900 to-charcoal-800 p-6 flex flex-col justify-end text-white relative">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-gold-400">
-            Family Invitation
-          </span>
-          <h2 className="font-serif font-bold text-xl mt-1">
-            {invitation?.family_name}
-          </h2>
-        </div>
+    <div className="min-h-screen bg-[#F6F1E9] flex flex-col">
+      {/* Header */}
+      <header className="h-20 bg-white border-b border-[#EAE3D6] px-6 sm:px-10 flex items-center justify-between">
+        <Link href="/" className="flex items-center">
+          <span className="font-serif font-bold text-2xl text-[#2B2B2B]">KinKeep</span>
+        </Link>
+        <Link href="/families" className="text-xs text-[#5A5A5A] hover:text-[#2B2B2B]">
+          Return to Family Spaces
+        </Link>
+      </header>
 
-        <div className="p-8 text-center space-y-6">
-          <div className="w-12 h-12 rounded-full bg-gold-100 text-gold-600 flex items-center justify-center mx-auto shadow-sm">
-            <Users className="w-6 h-6" />
+      {/* Main Preview Container (Figma Page 50) */}
+      <main className="flex-1 max-w-xl w-full mx-auto px-6 py-12 flex flex-col justify-center">
+        <div className="bg-white rounded-2xl p-8 sm:p-10 border border-[#EAE3D6] shadow-[0_4px_24px_rgba(0,0,0,0.04)] space-y-6">
+          <div className="text-center">
+            <span className="text-[10px] uppercase tracking-widest px-2.5 py-1 rounded bg-[#F6F1E9] text-[#7A7A7A] font-semibold border border-[#EAE3D6]">
+              INVITATION PREVIEW
+            </span>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#2B2B2B] mt-4">
+              You've Been Invited to Join This Family
+            </h1>
+            <p className="text-xs sm:text-sm text-[#5A5A5A] mt-2 font-light">
+              A place for your roots, your people, and the stories you share.
+            </p>
           </div>
 
-          <div>
-            <h3 className="font-serif text-2xl font-bold text-charcoal-900">
-              You&apos;ve Been Invited!
+          {/* Family Box */}
+          <div className="p-5 rounded-xl bg-[#F6F1E9]/70 border border-[#EAE3D6] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-[#C18B58] font-bold">
+                PRIVATE FAMILY SPACE
+              </span>
+              <span className="text-xs text-[#7A7A7A]">Harar, Ethiopia</span>
+            </div>
+            <h3 className="font-serif text-2xl font-bold text-[#2B2B2B]">
+              Mekonnen Family
             </h3>
-            <p className="text-xs sm:text-sm text-charcoal-700 mt-2 leading-relaxed">
-              <span className="font-semibold text-charcoal-900">{invitation?.inviter_name}</span> has invited you to join the{" "}
-              <span className="font-semibold text-charcoal-900">{invitation?.family_name}</span> workspace as a{" "}
-              <span className="font-semibold text-gold-600">{invitation?.role_name}</span>.
+            <p className="text-xs text-[#5A5A5A]">
+              Invited by <span className="font-semibold text-[#2B2B2B]">Hana Mekonnen</span> (Family Owner)
             </p>
+
+            {/* Note from inviter */}
+            <div className="pt-3 border-t border-[#EAE3D6]">
+              <p className="text-[10px] uppercase tracking-wider text-[#7A7A7A] font-semibold mb-1">
+                A NOTE FROM HANA
+              </p>
+              <p className="text-xs font-serif italic text-[#343434] leading-relaxed">
+                “Selam, come help us keep our family’s stories, photos, and traditions together. It wouldn’t be the same without you.”
+              </p>
+            </div>
           </div>
 
-          {errorMsg && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-2 text-left">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMsg}</span>
+          {/* Role details */}
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between py-2 border-b border-[#F6F1E9]">
+              <span className="text-[#5A5A5A]">Assigned Role</span>
+              <span className="font-semibold text-[#2B2B2B]">Editor (Can contribute to tree & memories)</span>
             </div>
-          )}
-
-          {successMsg && (
-            <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs flex items-center space-x-2 text-left">
-              <CheckCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{successMsg}</span>
+            <div className="flex justify-between py-2 border-b border-[#F6F1E9]">
+              <span className="text-[#5A5A5A]">Invited Email</span>
+              <span className="font-mono text-[#2B2B2B]">selam.bekele@gmail.com</span>
             </div>
-          )}
-
-          {/* Role Summary Box */}
-          <div className="p-4 bg-ivory-50 rounded-xl border border-border text-left space-y-2 text-xs">
-            <div className="flex items-center space-x-2 font-semibold text-charcoal-900">
-              <ShieldCheck className="w-4 h-4 text-gold-600" />
-              <span>Permissions for {invitation?.role_name}</span>
-            </div>
-            <p className="text-charcoal-700 leading-relaxed text-[11px]">
-              You will be able to collaborate with family members, view the generational lineage tree, read and contribute family stories, and upload memories.
-            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <Link
-              href="/families"
-              className="flex-1 py-2.5 rounded-lg border border-border text-charcoal-700 hover:bg-ivory-50 text-xs font-semibold"
-            >
-              Decline
-            </Link>
+          {/* Action Buttons */}
+          <div className="pt-2 space-y-3">
             <button
               onClick={handleAccept}
-              disabled={accepting}
-              className="flex-1 py-2.5 rounded-lg bg-gold-500 hover:bg-gold-600 text-white text-xs font-semibold shadow-xs flex items-center justify-center space-x-1.5 disabled:opacity-70"
+              disabled={loading}
+              className="w-full py-3 px-4 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors flex items-center justify-center space-x-2"
             >
-              {accepting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>Accept Invitation</span>
+              <span>Accept Invitation & Join Space</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setDeclined(true)}
+              className="w-full py-2.5 px-4 rounded-md border border-[#D5C9B8] text-[#7A7A7A] hover:text-red-600 text-xs font-medium transition-colors"
+            >
+              Decline Invitation
             </button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

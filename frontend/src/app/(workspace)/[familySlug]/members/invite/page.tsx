@@ -3,205 +3,320 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, UserPlus, Mail, Copy, Check, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, UserPlus, Mail, Copy, Check, Shield, Loader2 } from "lucide-react";
 import { apiRequest } from "@/services/api";
 
-export default function InviteFamilyMemberPage() {
-  const router = useRouter();
+export default function InviteMemberPage() {
   const params = useParams();
-  const familySlug = (params?.familySlug as string) || "family";
+  const router = useRouter();
+  const slug = (params?.familySlug as string) || "bekele-family";
 
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("FAMILY_VIEWER");
-  const [nickname, setNickname] = useState("");
-  const [personalMessage, setPersonalMessage] = useState("");
+  const [kinship, setKinship] = useState("Cousin");
+  const [role, setRole] = useState("EDITOR");
+  const [message, setMessage] = useState(
+    "Selam! Come help us keep our family’s stories, photos, and traditions together on KinKeep."
+  );
 
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sentSuccess, setSentSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const inviteLink = `http://localhost:3000/invitations/inv-${slug}-x9q2`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email) return;
 
     setLoading(true);
-    setErrorMsg(null);
 
-    // In a real environment, we call /api/v1/families/{id}/invitations
-    // For demo/dev preview, simulate instant link creation
-    const res = await apiRequest(`/api/v1/families/${familySlug}/invitations`, {
+    const res = await apiRequest(`/api/v1/families/${slug}/invitations`, {
       method: "POST",
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify({
+        email,
+        full_name: fullName,
+        kinship_relation: kinship,
+        role,
+        personal_note: message,
+      }),
     });
 
     setLoading(false);
-
-    if (res.success && res.data?.invitation_token) {
-      setGeneratedLink(`${window.location.origin}/invitations/${res.data.invitation_token}`);
-    } else {
-      // Fallback demo preview token
-      setGeneratedLink(`${window.location.origin}/invitations/demo-token-kinkeep-${Date.now()}`);
-    }
-  };
-
-  const handleCopy = () => {
-    if (generatedLink) {
-      navigator.clipboard.writeText(generatedLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    setSentSuccess(true);
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Link
-        href={`/${familySlug}/members`}
-        className="inline-flex items-center text-xs font-semibold text-charcoal-700 hover:text-charcoal-900"
-      >
-        <ArrowLeft className="w-4 h-4 mr-1.5" />
-        Back to Member Directory
-      </Link>
+    <div className="max-w-2xl mx-auto space-y-6 pb-12">
+      {/* Top Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-[#EAE3D6]">
+        <Link
+          href={`/${slug}/members`}
+          className="text-xs text-[#5A5A5A] hover:text-[#2B2B2B] flex items-center"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+          Back to Family Members
+        </Link>
+      </div>
 
-      <div className="bg-white p-8 rounded-2xl border border-border shadow-card space-y-6">
-        <div>
-          <span className="text-[11px] uppercase font-bold tracking-widest text-gold-600">
-            Workspace Governance
-          </span>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900 mt-1">
-            Invite Family Members
-          </h1>
-          <p className="text-xs sm:text-sm text-charcoal-700 mt-1">
-            Send an email invitation or share a private link for relatives to join your family archive.
+      {sentSuccess ? (
+        <div className="bg-white rounded-2xl p-8 border border-[#EAE3D6] shadow-sm text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200">
+            <Check className="w-6 h-6" />
+          </div>
+          <h2 className="font-serif text-2xl font-bold text-[#2B2B2B]">
+            Invitation Dispatched
+          </h2>
+          <p className="text-xs text-[#5A5A5A] max-w-sm mx-auto">
+            We’ve sent a private invitation link to <span className="font-semibold text-[#2B2B2B]">{email}</span> with instructions to join as an {role}.
           </p>
+
+          <div className="pt-4 flex justify-center space-x-3">
+            <button
+              onClick={() => {
+                setSentSuccess(false);
+                setEmail("");
+                setFullName("");
+              }}
+              className="px-4 py-2 rounded-md border border-[#D5C9B8] text-xs font-semibold text-[#2B2B2B]"
+            >
+              Invite Another Relative
+            </button>
+            <Link
+              href={`/${slug}/members`}
+              className="px-5 py-2 rounded-md bg-[#C18B58] text-white text-xs font-semibold"
+            >
+              Back to Members List
+            </Link>
+          </div>
         </div>
-
-        {errorMsg && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        {generatedLink ? (
-          <div className="p-6 rounded-xl bg-ivory-50 border border-border space-y-4">
-            <div className="text-xs font-semibold text-charcoal-900">
-              Invitation Dispatched to <span className="text-gold-600">{email}</span>
-            </div>
-            <p className="text-xs text-charcoal-700">
-              You can also share this direct invitation link via WhatsApp, SMS, or Telegram:
+      ) : (
+        <div className="bg-white rounded-2xl p-8 sm:p-10 border border-[#EAE3D6] shadow-[0_4px_24px_rgba(0,0,0,0.04)] space-y-6">
+          <div>
+            <span className="text-[10px] uppercase tracking-widest text-[#7A7A7A] font-semibold">
+              INVITE RELATIVE
+            </span>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#2B2B2B] mt-1">
+              Add a Family Member
+            </h1>
+            <p className="text-xs text-[#5A5A5A] font-light mt-1">
+              They will receive a secure invitation link to join your family space.
             </p>
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                readOnly
-                value={generatedLink}
-                className="flex-1 px-3 py-2 text-xs rounded-lg border border-border bg-white text-charcoal-800 font-mono"
-              />
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="px-4 py-2 rounded-lg bg-gold-500 hover:bg-gold-600 text-white text-xs font-semibold flex items-center space-x-1"
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? "Copied" : "Copy Link"}</span>
-              </button>
-            </div>
-            <div className="pt-2 text-right">
-              <button
-                type="button"
-                onClick={() => {
-                  setGeneratedLink(null);
-                  setEmail("");
-                }}
-                className="text-xs text-gold-600 hover:text-gold-700 font-semibold underline"
-              >
-                Invite Another Relative
-              </button>
-            </div>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-charcoal-700 mb-1">
-                Relative&apos;s Email Address *
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-charcoal-400 absolute left-3 top-1/2 -translate-y-1/2" />
+
+          <form onSubmit={handleSendInvite} className="space-y-5">
+            {/* Full Name & Email */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-[#2B2B2B] mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Hana Mekonnen"
+                  className="w-full px-3.5 py-2 rounded-md border border-[#D5C9B8] text-xs text-[#2B2B2B] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-1 focus:ring-[#C18B58]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#2B2B2B] mb-1">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="relative@example.com"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-gold-500 bg-ivory-50/50"
+                  placeholder="hana@example.com"
+                  className="w-full px-3.5 py-2 rounded-md border border-[#D5C9B8] text-xs text-[#2B2B2B] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-1 focus:ring-[#C18B58]"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-charcoal-700 mb-1">
-                  Family Role *
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-gold-500 bg-ivory-50/50"
-                >
-                  <option value="FAMILY_VIEWER">Viewer (Read-only access)</option>
-                  <option value="FAMILY_EDITOR">Editor (Can add stories, photos & people)</option>
-                  <option value="FAMILY_REVIEWER">Reviewer (Can approve submissions)</option>
-                  <option value="FAMILY_ADMIN">Administrator (Can manage members)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-charcoal-700 mb-1">
-                  Relationship or Nickname
-                </label>
-                <input
-                  type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="e.g. Uncle Dawit"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-gold-500 bg-ivory-50/50"
-                />
-              </div>
-            </div>
-
+            {/* Kinship Relation */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-charcoal-700 mb-1">
-                Personal Welcome Note (Optional)
+              <label className="block text-xs font-medium text-[#2B2B2B] mb-1">
+                Kinship Relation to You
+              </label>
+              <select
+                value={kinship}
+                onChange={(e) => setKinship(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-md border border-[#D5C9B8] text-xs text-[#2B2B2B] bg-white focus:outline-none focus:ring-1 focus:ring-[#C18B58]"
+              >
+                <option value="Grandparent">Grandparent (አያት)</option>
+                <option value="Parent">Parent (እናት/አባት)</option>
+                <option value="Sibling">Sibling (ወንድም/እህት)</option>
+                <option value="Child">Child (ልጅ)</option>
+                <option value="Aunt">Aunt (አክስት)</option>
+                <option value="Uncle">Uncle (አጎት)</option>
+                <option value="Cousin">Cousin (የአክስት/አጎት ልጅ)</option>
+                <option value="Spouse">Spouse / Partner (የትዳር አጋር)</option>
+                <option value="In-Law">In-Law (አማች)</option>
+              </select>
+            </div>
+
+            {/* Workspace Role Selection Cards (Figma ui_part2 Page 3) */}
+            <div>
+              <label className="block text-xs font-medium text-[#2B2B2B] mb-2">
+                Workspace Role & Permissions
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label
+                  onClick={() => setRole("ADMIN")}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    role === "ADMIN"
+                      ? "border-[#C18B58] bg-[#F6F1E9]/60 shadow-xs"
+                      : "border-[#D5C9B8] hover:bg-[#F6F1E9]/30"
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-[#2B2B2B]">Admin</span>
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={role === "ADMIN"}
+                      onChange={() => setRole("ADMIN")}
+                      className="text-[#C18B58]"
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#5A5A5A] font-light">
+                    Can invite members, approve tree edits, and manage events.
+                  </p>
+                </label>
+
+                <label
+                  onClick={() => setRole("EDITOR")}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    role === "EDITOR"
+                      ? "border-[#C18B58] bg-[#F6F1E9]/60 shadow-xs"
+                      : "border-[#D5C9B8] hover:bg-[#F6F1E9]/30"
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-[#2B2B2B]">Editor</span>
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={role === "EDITOR"}
+                      onChange={() => setRole("EDITOR")}
+                      className="text-[#C18B58]"
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#5A5A5A] font-light">
+                    Can add persons, connect relationships, and upload stories.
+                  </p>
+                </label>
+
+                <label
+                  onClick={() => setRole("CONTRIBUTOR")}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    role === "CONTRIBUTOR"
+                      ? "border-[#C18B58] bg-[#F6F1E9]/60 shadow-xs"
+                      : "border-[#D5C9B8] hover:bg-[#F6F1E9]/30"
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-[#2B2B2B]">Contributor</span>
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={role === "CONTRIBUTOR"}
+                      onChange={() => setRole("CONTRIBUTOR")}
+                      className="text-[#C18B58]"
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#5A5A5A] font-light">
+                    Can upload photos, record voices, and comment on stories.
+                  </p>
+                </label>
+
+                <label
+                  onClick={() => setRole("MEMBER")}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    role === "MEMBER"
+                      ? "border-[#C18B58] bg-[#F6F1E9]/60 shadow-xs"
+                      : "border-[#D5C9B8] hover:bg-[#F6F1E9]/30"
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-[#2B2B2B]">Member / Viewer</span>
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={role === "MEMBER"}
+                      onChange={() => setRole("MEMBER")}
+                      className="text-[#C18B58]"
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#5A5A5A] font-light">
+                    Read-only access to view the family tree and memory albums.
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            {/* Personal Message */}
+            <div>
+              <label className="block text-xs font-medium text-[#2B2B2B] mb-1">
+                Personal Note in Invitation Email
               </label>
               <textarea
                 rows={3}
-                value={personalMessage}
-                onChange={(e) => setPersonalMessage(e.target.value)}
-                placeholder="Hi! Join our family space so we can preserve our stories and photos together..."
-                className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-gold-500 bg-ivory-50/50"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-md border border-[#D5C9B8] text-xs text-[#2B2B2B] bg-white focus:outline-none focus:ring-1 focus:ring-[#C18B58] resize-none"
               />
             </div>
 
-            <div className="pt-2 flex justify-end space-x-3">
+            {/* Quick Shareable Link Box */}
+            <div className="p-3.5 bg-[#F6F1E9]/60 rounded-lg border border-[#EAE3D6] flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-[#7A7A7A]">
+                  Or share invite link directly
+                </p>
+                <p className="text-xs font-mono text-[#2B2B2B] truncate max-w-sm">
+                  {inviteLink}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="px-3 py-1.5 rounded bg-white border border-[#D5C9B8] text-xs font-semibold text-[#2B2B2B] hover:bg-[#F6F1E9] flex items-center space-x-1"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? "Copied!" : "Copy"}</span>
+              </button>
+            </div>
+
+            {/* Submit Actions */}
+            <div className="pt-2 flex items-center justify-between">
               <Link
-                href={`/${familySlug}/members`}
-                className="px-5 py-2.5 rounded-lg border border-border text-xs font-semibold text-charcoal-700 hover:bg-ivory-50"
+                href={`/${slug}/members`}
+                className="text-xs text-[#7A7A7A] hover:text-[#2B2B2B]"
               >
                 Cancel
               </Link>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2.5 rounded-lg bg-gold-500 hover:bg-gold-600 text-white text-xs font-semibold shadow-xs flex items-center space-x-2 disabled:opacity-70"
+                className="px-6 py-2.5 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors flex items-center space-x-2"
               >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Send Invitation</span>
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Send Invitation Email</span>
               </button>
             </div>
           </form>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
