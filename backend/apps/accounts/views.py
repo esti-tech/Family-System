@@ -8,7 +8,7 @@ from apps.accounts.models import User
 from apps.accounts.serializers import (
     RegisterSerializer, LoginSerializer, TokenRefreshSerializer,
     EmailVerificationSerializer, PasswordResetRequestSerializer,
-    PasswordResetConfirmSerializer, UserSerializer
+    PasswordResetConfirmSerializer, UserSerializer, UserUpdateSerializer
 )
 from apps.accounts.services import (
     create_user_session, rotate_refresh_token, revoke_session,
@@ -18,6 +18,7 @@ from apps.accounts.services import (
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_sensitive'
 
     @extend_schema(
         request=RegisterSerializer,
@@ -44,6 +45,7 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_sensitive'
 
     @extend_schema(
         request=LoginSerializer,
@@ -158,6 +160,7 @@ class LogoutView(APIView):
 
 class VerifyEmailView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_sensitive'
 
     @extend_schema(request=EmailVerificationSerializer)
     def post(self, request):
@@ -183,6 +186,7 @@ class VerifyEmailView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_sensitive'
 
     @extend_schema(request=PasswordResetRequestSerializer)
     def post(self, request):
@@ -204,6 +208,7 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_sensitive'
 
     @extend_schema(request=PasswordResetConfirmSerializer)
     def post(self, request):
@@ -232,3 +237,24 @@ class CurrentUserView(APIView):
     @extend_schema(responses={200: UserSerializer})
     def get(self, request):
         return success_response(data={"user": UserSerializer(request.user).data})
+
+    @extend_schema(
+        request=UserUpdateSerializer,
+        responses={200: UserSerializer}
+    )
+    def patch(self, request):
+        serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return success_response(
+            data={"user": UserSerializer(user).data},
+            message="User profile updated successfully."
+        )
+
+    @extend_schema(
+        request=UserUpdateSerializer,
+        responses={200: UserSerializer}
+    )
+    def put(self, request):
+        return self.patch(request)
+

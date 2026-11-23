@@ -127,3 +127,78 @@ class AuthenticationTests(TestCase):
 
         success_login = self.client.post(self.login_url, {"email": "mulugeta@example.com", "password": "NewSecurePassword456!"})
         self.assertEqual(success_login.status_code, status.HTTP_200_OK)
+
+    def test_invalid_credentials_login_fails(self):
+        User.objects.create_user(
+            email="hanna@example.com",
+            password="CorrectPassword123!",
+            full_name="Hanna Tesfaye",
+            status=User.AccountStatus.ACTIVE
+        )
+        resp = self.client.post(self.login_url, {"email": "hanna@example.com", "password": "WrongPassword!"})
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(resp.data['error']['code'], "INVALID_CREDENTIALS")
+
+    def test_suspended_account_login_fails(self):
+        User.objects.create_user(
+            email="suspended@example.com",
+            password="CorrectPassword123!",
+            full_name="Suspended User",
+            status=User.AccountStatus.SUSPENDED
+        )
+        resp = self.client.post(self.login_url, {"email": "suspended@example.com", "password": "CorrectPassword123!"})
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data['error']['code'], "ACCOUNT_SUSPENDED")
+
+    def test_weak_password_registration_fails(self):
+        weak_data = {
+            "email": "weak@example.com",
+            "full_name": "Weak User",
+            "password": "123",
+            "confirm_password": "123"
+        }
+        resp = self.client.post(self.register_url, weak_data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_user_profile_update_patch(self):
+        user = User.objects.create_user(
+            email="profile@example.com",
+            password="Password123!",
+            full_name="Original Name",
+            status=User.AccountStatus.ACTIVE
+        )
+        _, access_token = create_user_session(user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+        update_resp = self.client.patch(self.me_url, {
+            "full_name": "Updated Name",
+            "phone_number": "+251911234567",
+            "bio": "Historian of Gondar lineage",
+            "location_city": "Addis Ababa",
+            "location_country": "Ethiopia"
+        }, format='json')
+
+        self.assertEqual(update_resp.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertEqual(user.full_name, "Updated Name")
+        self.assertEqual(user.phone_number, "+251911234567")
+        self.assertEqual(user.profile.bio, "Historian of Gondar lineage")
+        self.assertEqual(user.profile.location_city, "Addis Ababa")
+
+    def test_logout_revokes_session(self):
+        user = User.objects.create_user(
+            email="logout@example.com",
+            password="Password123!",
+            full_name="Logout User",
+            status=User.AccountStatus.ACTIVE
+        )
+        raw_refresh, access = create_user_session(user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+
+        logout_resp = self.client.post(reverse('auth-logout'), {"refresh_token": raw_refresh}, format='json')
+        self.assertEqual(logout_resp.status_code, status.HTTP_200_OK)
+
+        # Session should be revoked, rotating this refresh token should fail
+        rotate_resp = self.client.post(self.refresh_url, {"refresh_token": raw_refresh}, format='json')
+        self.assertEqual(rotate_resp.status_code, status.HTTP_401_UNAUTHORIZED)
+

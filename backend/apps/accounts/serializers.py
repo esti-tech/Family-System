@@ -72,3 +72,32 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
         validate_password(data['new_password'])
         return data
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    bio = serializers.CharField(required=False, allow_blank=True)
+    location_country = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    location_city = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    timezone = serializers.CharField(required=False, allow_blank=True, max_length=50)
+
+    class Meta:
+        model = User
+        fields = ['full_name', 'phone_number', 'preferred_language', 'bio', 'location_country', 'location_city', 'timezone']
+
+    def update(self, instance, validated_data):
+        profile_data = {}
+        for field in ['bio', 'location_country', 'location_city', 'timezone']:
+            if field in validated_data:
+                profile_data[field] = validated_data.pop(field)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if profile_data:
+            profile, _ = UserProfile.objects.get_or_create(user=instance)
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
+
+        return instance
+

@@ -1,23 +1,70 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowLeft, User, Shield, Globe, Lock, Check, Smartphone, Monitor } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, User, Shield, Globe, Lock, Check, Smartphone, Monitor, Loader2 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function UserProfilePage() {
-  const [fullName, setFullName] = useState("Selam Bekele");
-  const [email] = useState("selam.bekele@gmail.com");
-  const [phone, setPhone] = useState("+251 91 123 4567");
-  const [bio, setBio] = useState("Preserving the Bekele and Mekonnen family oral history and coffee ceremony recipes.");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bio, setBio] = useState("");
   const [language, setLanguage] = useState("en");
   const [calendar, setCalendar] = useState("gregorian");
-  const [saved, setSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      setLoading(true);
+      const res = await apiRequest("/api/v1/auth/me");
+      setLoading(false);
+      if (res.success && res.data?.user) {
+        const u = res.data.user;
+        setFullName(u.full_name || "");
+        setEmail(u.email || "");
+        setPhone(u.phone_number || "");
+        setBio(u.profile?.bio || "");
+        setLanguage(u.preferred_language || "en");
+      } else {
+        // Fallback for demonstration
+        setFullName("Dawit Bekele");
+        setEmail("dawit.bekele@example.com");
+        setPhone("+251 91 123 4567");
+        setBio("Preserving the Bekele family living archive.");
+      }
+    }
+    loadUser();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSaving(true);
+    setErrorMsg(null);
+
+    const res = await apiRequest("/api/v1/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        full_name: fullName,
+        phone_number: phone,
+        bio: bio,
+        preferred_language: language,
+      }),
+    });
+
+    setSaving(false);
+    if (res.success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } else {
+      setErrorMsg(res.error?.message || "Failed to update profile.");
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-[#F6F1E9] flex flex-col">
@@ -202,12 +249,24 @@ export default function UserProfilePage() {
           </div>
 
           {/* Submit Action */}
-          <div className="flex justify-end pt-2">
+          <div className="flex items-center justify-between pt-2">
+            {errorMsg ? (
+              <span className="text-xs font-semibold text-red-600">{errorMsg}</span>
+            ) : <div />}
+
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors"
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
             >
-              Save Profile Changes
+              {saving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Profile Changes</span>
+              )}
             </button>
           </div>
         </form>
