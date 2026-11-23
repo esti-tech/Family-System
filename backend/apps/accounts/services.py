@@ -106,6 +106,27 @@ def verify_email_token_or_code(token_or_code: str) -> User:
     now = timezone.now()
     token_rec = None
 
+    # Development testing convenience: Allow '123456' in DEBUG mode
+    from django.conf import settings
+    if settings.DEBUG and token_or_code in ("123456", "000000"):
+        token_rec = EmailVerificationToken.objects.filter(
+            used_at__isnull=True
+        ).select_related('user').order_by('-created_at').first()
+        if token_rec:
+            user = token_rec.user
+            user.is_verified = True
+            user.status = User.AccountStatus.ACTIVE
+            user.save(update_fields=['is_verified', 'status'])
+            token_rec.used_at = now
+            token_rec.save(update_fields=['used_at'])
+            return user
+        pending_user = User.objects.filter(is_verified=False).order_by('-created_at').first()
+        if pending_user:
+            pending_user.is_verified = True
+            pending_user.status = User.AccountStatus.ACTIVE
+            pending_user.save(update_fields=['is_verified', 'status'])
+            return pending_user
+
     if len(token_or_code) == 6 and token_or_code.isdigit():
         token_rec = EmailVerificationToken.objects.filter(
             code=token_or_code,

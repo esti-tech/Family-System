@@ -8,24 +8,21 @@ export default function AuthLayout({
 }) {
   return (
     <div className="min-h-screen flex bg-ivory-100">
-      {/* LEFT COLUMN: Cinematic Cultural Montage (Desktop Only) */}
+      {/* LEFT COLUMN: Cinematic Ethiopian Family Montage (Desktop Only) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-charcoal-900 overflow-hidden items-end p-12">
-        {/* Background Visual Overlay */}
+        {/* Exact Ethiopian Family Image from Figma Design */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-45 mix-blend-overlay filter brightness-90"
+          className="absolute inset-0 bg-cover bg-center filter brightness-95"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1400&q=80')"
+            backgroundImage: "url('/assets/images/auth-family-split.jpeg')"
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900 via-charcoal-900/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900 via-charcoal-900/40 to-transparent" />
 
         {/* Content */}
         <div className="relative z-10 space-y-6 text-white max-w-lg">
           <Link href="/" className="inline-flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-full bg-gold-500 flex items-center justify-center text-white font-serif font-bold text-xl shadow-md">
-              K
-            </div>
-            <span className="font-serif font-bold text-2xl tracking-tight text-white">
+            <span className="font-serif font-bold text-3xl tracking-tight text-white">
               KinKeep
             </span>
           </Link>

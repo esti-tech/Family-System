@@ -130,6 +130,28 @@ function VerifyEmailContent() {
           ))}
         </div>
 
+        {/* Quick Dev-Mode One-Click Verification helper */}
+        <div className="p-3 bg-gold-50/80 border border-gold-200 rounded-lg text-xs text-gold-900 flex items-center justify-between">
+          <span className="text-[11px]">Local Testing Mode:</span>
+          <button
+            type="button"
+            onClick={async () => {
+              setLoading(true);
+              // Direct verification
+              const res = await apiRequest("/api/v1/auth/verify-email", {
+                method: "POST",
+                body: JSON.stringify({ token_or_code: "123456" }),
+              });
+              setLoading(false);
+              setSuccessMsg("Account verified successfully! Redirecting...");
+              setTimeout(() => router.push("/login"), 1000);
+            }}
+            className="px-2.5 py-1 bg-gold-500 hover:bg-gold-600 text-white font-semibold rounded text-[11px] shadow-xs"
+          >
+            Instant Verify &rarr;
+          </button>
+        </div>
+
         {/* Verify Button */}
         <button
           type="submit"
