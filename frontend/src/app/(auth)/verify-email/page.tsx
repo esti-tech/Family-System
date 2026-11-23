@@ -3,19 +3,28 @@
 import Link from "next/link";
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
+import { Mail, Loader2, AlertCircle, CheckCircle, ShieldCheck } from "lucide-react";
 import { apiRequest } from "@/services/api";
+
+function maskEmail(email: string): string {
+  const parts = email.split("@");
+  if (parts.length !== 2) return "s••••.b•••••@gmail.com";
+  const name = parts[0];
+  const domain = parts[1];
+  const maskedName = name.length <= 2 ? name + "•••" : name[0] + "••••" + name[name.length - 1];
+  return `${maskedName}@${domain}`;
+}
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const emailParam = searchParams.get("email") || "your email";
+  const emailParam = searchParams.get("email") || "selam.bekele@gmail.com";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(60);
+  const [verifiedSuccess, setVerifiedSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(45);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -28,8 +37,8 @@ function VerifyEmailContent() {
 
   const handleChange = (index: number, value: string) => {
     if (value.length > 1) {
-      // Handle paste
-      const pasted = value.slice(0, 6).split("");
+      // Handle pasting a 6-digit code
+      const pasted = value.replace(/\D/g, "").slice(0, 6).split("");
       const newOtp = [...otp];
       pasted.forEach((char, i) => {
         if (i < 6) newOtp[i] = char;
@@ -39,12 +48,13 @@ function VerifyEmailContent() {
       return;
     }
 
+    const cleanChar = value.replace(/\D/g, "");
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = cleanChar;
     setOtp(newOtp);
 
     // Auto-focus next input
-    if (value && index < 5) {
+    if (cleanChar && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -55,9 +65,8 @@ function VerifyEmailContent() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = otp.join("");
+  const handleVerify = async (codeToVerify?: string) => {
+    const code = codeToVerify || otp.join("");
     if (code.length < 6) {
       setErrorMsg("Please enter the complete 6-digit verification code.");
       return;
@@ -78,125 +87,193 @@ function VerifyEmailContent() {
       return;
     }
 
-    setSuccessMsg("Email successfully verified! Redirecting to login...");
-    setTimeout(() => {
-      router.push("/login");
-    }, 1500);
+    setVerifiedSuccess(true);
   };
 
   return (
-    <div className="bg-white py-10 px-6 sm:px-8 shadow-card rounded-2xl border border-border text-center">
-      {/* Icon */}
-      <div className="w-14 h-14 rounded-full bg-gold-100 text-gold-600 flex items-center justify-center mx-auto mb-6 shadow-sm">
-        <Mail className="w-7 h-7" />
-      </div>
+    <div className="bg-white py-10 px-6 sm:px-9 shadow-[0_4px_24px_rgba(0,0,0,0.06)] rounded-2xl border border-[#EAE3D6] text-center">
+      {/* Brand Header */}
+      <Link href="/" className="inline-block mb-4">
+        <span className="font-serif font-bold text-2xl text-[#2B2B2B]">KinKeep</span>
+      </Link>
 
-      <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900">
-        Verify Your Email
-      </h2>
-      <p className="text-xs sm:text-sm text-charcoal-700 mt-2 max-w-sm mx-auto">
-        We sent a 6-digit verification code to <span className="font-semibold text-charcoal-900">{emailParam}</span>. Enter the code below to activate your account.
-      </p>
+      {/* STATE 2: SUCCESS STATE (Figma Page 17) */}
+      {verifiedSuccess ? (
+        <div className="space-y-6">
+          <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 border border-emerald-200 shadow-sm">
+            <CheckCircle className="w-7 h-7" />
+          </div>
 
-      {errorMsg && (
-        <div className="mt-6 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center justify-center space-x-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
+          <div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2B2B2B]">
+              Email Verified
+            </h2>
+            <p className="text-xs sm:text-sm text-[#5A5A5A] mt-2 max-w-sm mx-auto font-light leading-relaxed">
+              One more connection, safely kept. Your email is verified and your family’s story can begin.
+            </p>
+          </div>
 
-      {successMsg && (
-        <div className="mt-6 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs flex items-center justify-center space-x-2">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{successMsg}</span>
-        </div>
-      )}
+          <div className="inline-block py-1.5 px-4 rounded-full bg-[#F6F1E9] border border-[#EAE3D6] text-xs font-mono text-[#5A5A5A]">
+            {maskEmail(emailParam)}
+          </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-        {/* 6 OTP Input Boxes */}
-        <div className="flex justify-center space-x-2 sm:space-x-3">
-          {otp.map((digit, idx) => (
-            <input
-              key={idx}
-              ref={(el) => (inputRefs.current[idx] = el)}
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={digit}
-              onChange={(e) => handleChange(idx, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(idx, e)}
-              className="w-11 h-13 sm:w-12 sm:h-14 text-center font-bold text-xl rounded-lg border border-border bg-ivory-50/50 text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-gold-500 shadow-sm"
-            />
-          ))}
-        </div>
-
-        {/* Quick Dev-Mode One-Click Verification helper */}
-        <div className="p-3 bg-gold-50/80 border border-gold-200 rounded-lg text-xs text-gold-900 flex items-center justify-between">
-          <span className="text-[11px]">Local Testing Mode:</span>
-          <button
-            type="button"
-            onClick={async () => {
-              setLoading(true);
-              // Direct verification
-              const res = await apiRequest("/api/v1/auth/verify-email", {
-                method: "POST",
-                body: JSON.stringify({ token_or_code: "123456" }),
-              });
-              setLoading(false);
-              setSuccessMsg("Account verified successfully! Redirecting...");
-              setTimeout(() => router.push("/login"), 1000);
-            }}
-            className="px-2.5 py-1 bg-gold-500 hover:bg-gold-600 text-white font-semibold rounded text-[11px] shadow-xs"
-          >
-            Instant Verify &rarr;
-          </button>
-        </div>
-
-        {/* Verify Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 px-4 rounded-lg bg-gold-500 hover:bg-gold-600 text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-70"
-        >
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          <span>Verify Email</span>
-        </button>
-      </form>
-
-      {/* Resend Action */}
-      <div className="mt-6 text-xs text-charcoal-700 space-y-2">
-        <p>
-          Didn&apos;t receive the code?{" "}
-          {countdown > 0 ? (
-            <span className="text-charcoal-700 font-medium">Resend in {countdown}s</span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setCountdown(60);
-                alert("A new verification code has been dispatched.");
-              }}
-              className="text-gold-600 hover:text-gold-700 font-semibold underline"
+          <div className="space-y-3 pt-2">
+            <Link
+              href="/workspaces"
+              className="w-full py-2.5 px-4 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white font-medium text-sm transition-colors text-center inline-block shadow-sm"
             >
-              Resend Code
-            </button>
-          )}
-        </p>
+              Continue to KinKeep
+            </Link>
+            <div>
+              <Link
+                href="/login"
+                className="text-xs font-medium text-[#7A7A7A] hover:text-[#2B2B2B] transition-colors"
+              >
+                Return to Login
+              </Link>
+            </div>
+          </div>
 
-        <div className="pt-2">
-          <Link href="/register" className="inline-flex items-center text-xs text-charcoal-700 hover:text-charcoal-900">
-            <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-            Change email address
-          </Link>
+          {/* Security Note */}
+          <div className="pt-6 border-t border-[#EAE3D6] text-left">
+            <p className="text-[10px] uppercase tracking-wider text-[#7A7A7A] font-semibold mb-1">
+              A LITTLE SECURITY FOR WHAT MATTERS MOST
+            </p>
+            <p className="text-xs text-[#5A5A5A] font-light">
+              Never share your password or credentials with anyone. KinKeep will never ask for them.
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* STATE 1: ACTIVE OTP VERIFICATION (Figma Page 13) */
+        <div className="space-y-6">
+          {/* Envelope Icon */}
+          <div className="w-14 h-14 rounded-full bg-[#F6F1E9] text-[#C18B58] flex items-center justify-center mx-auto mb-4 border border-[#EAE3D6] shadow-sm">
+            <Mail className="w-6 h-6" />
+          </div>
+
+          <div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2B2B2B]">
+              Verify Your Email
+            </h2>
+            <p className="text-xs sm:text-sm text-[#5A5A5A] mt-2 max-w-sm mx-auto font-light leading-relaxed">
+              We sent a verification link and a six-digit code to
+            </p>
+            <div className="inline-block mt-2 py-1 px-3.5 rounded-full bg-[#F6F1E9] border border-[#EAE3D6] text-xs font-mono text-[#2B2B2B]">
+              {maskEmail(emailParam)}
+            </div>
+            <p className="text-xs text-[#7A7A7A] mt-2 font-light">
+              Open the link in your email, or enter the code below.
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs flex items-center justify-center space-x-2 text-left">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <form onSubmit={(e) => { e.preventDefault(); handleVerify(); }} className="space-y-6">
+            <div>
+              <label className="block text-xs font-medium text-[#2B2B2B] mb-3">
+                Verification code
+              </label>
+
+              {/* 6 OTP Boxes */}
+              <div className="flex justify-center space-x-2 sm:space-x-2.5">
+                {otp.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => (inputRefs.current[idx] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    className="w-11 h-13 sm:w-12 sm:h-14 text-center font-bold text-xl rounded-md border border-[#D5C9B8] bg-white text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-[#C18B58] focus:border-transparent shadow-xs transition-all"
+                  />
+                ))}
+              </div>
+
+              <p className="text-[11px] text-[#7A7A7A] mt-2 font-light">
+                Codes are valid for 10 minutes.
+              </p>
+            </div>
+
+            {/* Dev Mode Instant Verify Tool */}
+            <div className="p-3 bg-[#F6F1E9] border border-[#EAE3D6] rounded-md text-xs text-[#5A5A5A] flex items-center justify-between">
+              <span className="text-[11px] font-light">Development Bypass:</span>
+              <button
+                type="button"
+                onClick={() => handleVerify("123456")}
+                className="px-2.5 py-1 bg-[#C18B58] hover:bg-[#b07d4b] text-white font-medium rounded text-[11px] shadow-xs transition-colors"
+              >
+                Instant Verify &rarr;
+              </button>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 px-4 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white font-medium text-sm shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-70"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>Verify Email</span>
+            </button>
+          </form>
+
+          {/* Resend & Change Email Actions */}
+          <div className="pt-2 text-xs text-[#5A5A5A] space-y-2">
+            <p>
+              Didn’t get the email?{" "}
+              {countdown > 0 ? (
+                <span className="text-[#7A7A7A] font-mono">
+                  Resend Code · 00:{countdown < 10 ? `0${countdown}` : countdown}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCountdown(45);
+                    alert("A fresh verification code has been dispatched to your email.");
+                  }}
+                  className="text-[#C18B58] hover:underline font-medium"
+                >
+                  Resend Code
+                </button>
+              )}
+            </p>
+            <div>
+              <Link
+                href="/register"
+                className="text-xs text-[#7A7A7A] hover:text-[#2B2B2B] transition-colors"
+              >
+                Change Email
+              </Link>
+            </div>
+          </div>
+
+          {/* Bottom Security Note */}
+          <div className="pt-6 border-t border-[#EAE3D6] text-left">
+            <p className="text-[10px] uppercase tracking-wider text-[#7A7A7A] font-semibold mb-1">
+              A LITTLE SECURITY FOR WHAT MATTERS MOST
+            </p>
+            <p className="text-xs text-[#5A5A5A] font-light">
+              Never share this code. KinKeep will never ask for it.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="text-center p-8 text-charcoal-700">Loading verification...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-sm text-[#5A5A5A]">Loading verification...</div>}>
       <VerifyEmailContent />
     </Suspense>
   );
