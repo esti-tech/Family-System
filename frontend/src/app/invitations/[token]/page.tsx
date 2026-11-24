@@ -1,24 +1,76 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ShieldCheck, Users, CheckCircle, ArrowRight, X } from "lucide-react";
+import { ShieldCheck, Users, CheckCircle, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
+import { apiRequest } from "@/services/api";
+
+interface InvitationData {
+  id: string;
+  family_name: string;
+  role_name: string;
+  inviter_name: string;
+  status: string;
+  expires_at: string;
+}
 
 export default function AcceptInvitationPage() {
   const params = useParams();
   const router = useRouter();
   const token = params?.token as string;
 
-  const [loading, setLoading] = useState(false);
+  const [inspectLoading, setInspectLoading] = useState(true);
+  const [invitation, setInvitation] = useState<InvitationData | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [actionLoading, setActionLoading] = useState(false);
   const [declined, setDeclined] = useState(false);
 
-  const handleAccept = () => {
-    setLoading(true);
-    setTimeout(() => {
-      // Navigate into the joined family space
-      router.push("/mekonnen-family/dashboard");
-    }, 1000);
+  useEffect(() => {
+    async function inspect() {
+      if (!token) return;
+      setInspectLoading(true);
+      const res = await apiRequest<InvitationData>(`/api/v1/invitations/${token}`);
+      if (res.success && res.data) {
+        setInvitation(res.data);
+      } else {
+        setErrorMessage(res.error?.message || "This invitation link is invalid or has expired.");
+      }
+      setInspectLoading(false);
+    }
+    inspect();
+  }, [token]);
+
+  const handleAccept = async () => {
+    setActionLoading(true);
+    setErrorMessage("");
+
+    const res = await apiRequest<{ family_slug: string; family_name: string }>(
+      `/api/v1/invitations/${token}/accept`,
+      { method: "POST" }
+    );
+
+    setActionLoading(false);
+
+    if (res.success && res.data) {
+      router.push(`/${res.data.family_slug}/dashboard`);
+    } else {
+      if (res.error?.code === "UNAUTHORIZED" || res.error?.code === "NOT_AUTHENTICATED") {
+        router.push(`/login?next=/invitations/${token}`);
+      } else {
+        setErrorMessage(res.error?.message || "Failed to accept invitation.");
+      }
+    }
+  };
+
+  const handleDecline = async () => {
+    setActionLoading(true);
+    const res = await apiRequest(`/api/v1/invitations/${token}/decline`, {
+      method: "POST",
+    });
+    setActionLoading(false);
+    setDeclined(true);
   };
 
   if (declined) {
@@ -27,7 +79,38 @@ export default function AcceptInvitationPage() {
         <div className="bg-white p-8 rounded-2xl border border-[#EAE3D6] max-w-md w-full shadow-sm space-y-4">
           <h2 className="font-serif text-xl font-bold text-[#2B2B2B]">Invitation Declined</h2>
           <p className="text-xs text-[#5A5A5A]">
-            You have declined the invitation to join Mekonnen Family. No membership was created.
+            You have declined the invitation to join {invitation?.family_name || "the family space"}. No membership was created.
+          </p>
+          <Link
+            href="/families"
+            className="inline-block mt-4 text-xs font-semibold text-[#C18B58] hover:underline"
+          >
+            Return to Family Spaces &rarr;
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (inspectLoading) {
+    return (
+      <div className="min-h-screen bg-[#F6F1E9] flex flex-col items-center justify-center p-6 text-center">
+        <Loader2 className="w-8 h-8 text-[#C18B58] animate-spin mb-3" />
+        <p className="text-xs text-[#5A5A5A]">Validating family invitation...</p>
+      </div>
+    );
+  }
+
+  if (errorMessage && !invitation) {
+    return (
+      <div className="min-h-screen bg-[#F6F1E9] flex flex-col justify-center items-center p-6 text-center">
+        <div className="bg-white p-8 rounded-2xl border border-red-200 max-w-md w-full shadow-sm space-y-4">
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-200">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="font-serif text-xl font-bold text-[#2B2B2B]">Invitation Unavailable</h2>
+          <p className="text-xs text-red-600 font-light">
+            {errorMessage}
           </p>
           <Link
             href="/families"
@@ -67,25 +150,31 @@ export default function AcceptInvitationPage() {
             </p>
           </div>
 
+          {errorMessage && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+              {errorMessage}
+            </div>
+          )}
+
           {/* Family Box */}
           <div className="p-5 rounded-xl bg-[#F6F1E9]/70 border border-[#EAE3D6] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-wider text-[#C18B58] font-bold">
                 PRIVATE FAMILY SPACE
               </span>
-              <span className="text-xs text-[#7A7A7A]">Harar, Ethiopia</span>
+              <span className="text-xs text-[#7A7A7A]">Ethiopia</span>
             </div>
             <h3 className="font-serif text-2xl font-bold text-[#2B2B2B]">
-              Mekonnen Family
+              {invitation?.family_name}
             </h3>
             <p className="text-xs text-[#5A5A5A]">
-              Invited by <span className="font-semibold text-[#2B2B2B]">Hana Mekonnen</span> (Family Owner)
+              Invited by <span className="font-semibold text-[#2B2B2B]">{invitation?.inviter_name || "Family Administrator"}</span>
             </p>
 
             {/* Note from inviter */}
             <div className="pt-3 border-t border-[#EAE3D6]">
               <p className="text-[10px] uppercase tracking-wider text-[#7A7A7A] font-semibold mb-1">
-                A NOTE FROM HANA
+                INVITATION NOTE
               </p>
               <p className="text-xs font-serif italic text-[#343434] leading-relaxed">
                 “Selam, come help us keep our family’s stories, photos, and traditions together. It wouldn’t be the same without you.”
@@ -97,11 +186,13 @@ export default function AcceptInvitationPage() {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between py-2 border-b border-[#F6F1E9]">
               <span className="text-[#5A5A5A]">Assigned Role</span>
-              <span className="font-semibold text-[#2B2B2B]">Editor (Can contribute to tree & memories)</span>
+              <span className="font-semibold text-[#2B2B2B]">{invitation?.role_name}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-[#F6F1E9]">
-              <span className="text-[#5A5A5A]">Invited Email</span>
-              <span className="font-mono text-[#2B2B2B]">selam.bekele@gmail.com</span>
+              <span className="text-[#5A5A5A]">Valid Until</span>
+              <span className="text-[#2B2B2B]">
+                {invitation?.expires_at ? new Date(invitation.expires_at).toLocaleDateString() : "Active"}
+              </span>
             </div>
           </div>
 
@@ -109,15 +200,22 @@ export default function AcceptInvitationPage() {
           <div className="pt-2 space-y-3">
             <button
               onClick={handleAccept}
-              disabled={loading}
-              className="w-full py-3 px-4 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors flex items-center justify-center space-x-2"
+              disabled={actionLoading}
+              className="w-full py-3 px-4 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
             >
-              <span>Accept Invitation & Join Space</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              {actionLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                <>
+                  <span>Accept Invitation & Join Space</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
             </button>
             <button
-              onClick={() => setDeclined(true)}
-              className="w-full py-2.5 px-4 rounded-md border border-[#D5C9B8] text-[#7A7A7A] hover:text-red-600 text-xs font-medium transition-colors"
+              onClick={handleDecline}
+              disabled={actionLoading}
+              className="w-full py-2.5 px-4 rounded-md border border-[#D5C9B8] text-[#7A7A7A] hover:text-red-600 text-xs font-medium transition-colors disabled:opacity-50"
             >
               Decline Invitation
             </button>

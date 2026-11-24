@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import { Shield, Save, Check, AlertTriangle, Trash2, MapPin, Globe } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Shield, Save, Check, AlertTriangle, Trash2, MapPin, Globe, Loader2 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function WorkspaceSettingsPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = (params?.familySlug as string) || "bekele-family";
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [familyName, setFamilyName] = useState("Bekele Family");
   const [ancestralTown, setAncestralTown] = useState("Gondar");
@@ -18,12 +25,68 @@ export default function WorkspaceSettingsPage() {
   const [maskMinors, setMaskMinors] = useState(true);
   const [languageMode, setLanguageMode] = useState("AMHARIC_ENGLISH");
 
-  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    async function loadFamily() {
+      setLoading(true);
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}`);
+      if (res.success && res.data) {
+        setFamilyName(res.data.name || "");
+        setAncestralTown(res.data.origin_city || "");
+        setCountry(res.data.origin_country || "Ethiopia");
+        setMotto(res.data.description || "");
+        if (res.data.settings) {
+          if (res.data.settings.foundation_year) setFoundationYear(res.data.settings.foundation_year);
+          if (res.data.settings.approval_mode) setApprovalMode(res.data.settings.approval_mode);
+          if (res.data.settings.mask_minors !== undefined) setMaskMinors(res.data.settings.mask_minors);
+          if (res.data.settings.language_mode) setLanguageMode(res.data.settings.language_mode);
+        }
+      }
+      setLoading(false);
+    }
+    loadFamily();
+  }, [slug]);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSaving(true);
+    setErrorMessage("");
+
+    const res = await apiRequest(`/api/v1/families/by-slug/${slug}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: familyName,
+        origin_city: ancestralTown,
+        origin_country: country,
+        description: motto,
+        settings: {
+          foundation_year: foundationYear,
+          approval_mode: approvalMode,
+          mask_minors: maskMinors,
+          language_mode: languageMode,
+        },
+      }),
+    });
+
+    setSaving(false);
+    if (res.success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } else {
+      setErrorMessage(res.error?.message || "Failed to update settings.");
+    }
+  };
+
+  const handleArchive = async () => {
+    if (confirm("Are you sure you want to archive this family workspace?")) {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}`, {
+        method: "DELETE",
+      });
+      if (res.success) {
+        router.push("/families");
+      } else {
+        alert(res.error?.message || "Failed to archive family workspace.");
+      }
+    }
   };
 
   return (
@@ -45,6 +108,12 @@ export default function WorkspaceSettingsPage() {
         <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center space-x-2">
           <Check className="w-4 h-4 text-emerald-600" />
           <span>Workspace settings updated successfully.</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-3.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800">
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -213,10 +282,15 @@ export default function WorkspaceSettingsPage() {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2.5 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors flex items-center space-x-1.5"
+            disabled={saving}
+            className="px-6 py-2.5 rounded-md bg-[#C18B58] hover:bg-[#b07d4b] text-white text-xs font-semibold shadow-sm transition-colors flex items-center space-x-1.5 disabled:opacity-50"
           >
-            <Save className="w-3.5 h-3.5" />
-            <span>Save Workspace Settings</span>
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>{saving ? "Saving Changes..." : "Save Workspace Settings"}</span>
           </button>
         </div>
 
@@ -242,11 +316,7 @@ export default function WorkspaceSettingsPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (confirm("Are you sure you want to archive this family workspace?")) {
-                  alert("Workspace archived.");
-                }
-              }}
+              onClick={handleArchive}
               className="px-3.5 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-colors"
             >
               Archive Family Workspace

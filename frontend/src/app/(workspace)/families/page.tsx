@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, UserPlus, Shield, MapPin, ChevronDown, Bell, Users, Clock, Sparkles } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface FamilySpace {
   id: string;
@@ -20,7 +21,7 @@ export default function FamilySelectionPage() {
   const [filterSort, setFilterSort] = useState("recently_opened");
   const [viewState, setViewState] = useState<"active" | "empty" | "loading">("active");
 
-  const familySpaces: FamilySpace[] = [
+  const DEFAULT_FAMILIES: FamilySpace[] = [
     {
       id: "fam-1",
       name: "Bekele Family",
@@ -52,6 +53,29 @@ export default function FamilySelectionPage() {
       recentActivity: "Oral history recording shared last week",
     },
   ];
+
+  const [familySpaces, setFamilySpaces] = useState<FamilySpace[]>(DEFAULT_FAMILIES);
+
+  useEffect(() => {
+    async function fetchUserFamilies() {
+      const res = await apiRequest("/api/v1/families/");
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const liveSpaces: FamilySpace[] = res.data.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          slug: f.slug,
+          role: "Owner (you)",
+          ownerName: "You",
+          origin: `${f.origin_city || "Addis Ababa"}, ${f.origin_country || "Ethiopia"}`,
+          memberCount: f.member_count || 1,
+          recentActivity: "Active family archive",
+        }));
+        setFamilySpaces(liveSpaces);
+      }
+    }
+    fetchUserFamilies();
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-[#F6F1E9] flex flex-col">

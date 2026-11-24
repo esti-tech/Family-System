@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Users,
@@ -15,17 +16,55 @@ import {
   QrCode,
   Clock,
   Heart,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
+
+interface DashboardSummary {
+  family_id: string;
+  family_name: string;
+  family_slug: string;
+  origin_city?: string;
+  origin_country?: string;
+  member_count: number;
+  generations_count: number;
+  memories_count: number;
+  events_count: number;
+  storage_used_bytes: number;
+  storage_limit_bytes: number;
+}
 
 export default function FamilyDashboardPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
 
-  // Derive title from slug
-  const familyName = slug
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+
+  // Derive default title from slug as initial fallback
+  const fallbackFamilyName = slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+
+  useEffect(() => {
+    async function fetchDashboard() {
+      setLoading(true);
+      const res = await apiRequest<DashboardSummary>(
+        `/api/v1/families/by-slug/${slug}/dashboard-summary`
+      );
+      if (res.success && res.data) {
+        setSummary(res.data);
+      }
+      setLoading(false);
+    }
+    fetchDashboard();
+  }, [slug]);
+
+  const familyName = summary?.family_name || fallbackFamilyName;
+  const originCity = summary?.origin_city || "Gondar";
+  const originCountry = summary?.origin_country || "Ethiopia";
+  const memberCount = summary?.member_count ?? 1;
 
   return (
     <div className="space-y-8 pb-12">
@@ -41,7 +80,7 @@ export default function FamilyDashboardPage() {
         <div className="relative z-10 max-w-2xl space-y-4">
           <div className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest px-2.5 py-1 rounded bg-white/10 text-[#EAE3D6] font-semibold border border-white/20">
             <Sparkles className="w-3.5 h-3.5 text-[#C18B58]" />
-            <span>ROOTED IN GONDAR & ADDIS ABABA · ESTABLISHED 1948</span>
+            <span>ROOTED IN {originCity.toUpperCase()}, {originCountry.toUpperCase()}</span>
           </div>
 
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-normal leading-tight">
@@ -49,7 +88,7 @@ export default function FamilyDashboardPage() {
           </h1>
 
           <p className="text-sm text-[#EAE3D6] font-light leading-relaxed">
-            One shared home for four generations of stories, photographs, wedding memories, and the living branches of our family tree.
+            One shared home for stories, photographs, wedding memories, and the living branches of our family tree.
           </p>
 
           <div className="pt-2 flex flex-wrap gap-3">
@@ -80,8 +119,10 @@ export default function FamilyDashboardPage() {
           <span className="text-[11px] uppercase tracking-wider text-[#7A7A7A] font-semibold">
             Generations
           </span>
-          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">4 Mapped</p>
-          <span className="text-[11px] text-[#5A5A5A]">Root: Bekele Wolde (1918)</span>
+          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">
+            {summary ? `${summary.generations_count} Mapped` : "4 Mapped"}
+          </p>
+          <span className="text-[11px] text-[#5A5A5A]">Root: Ancestral lineage</span>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-[#EAE3D6] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
@@ -91,8 +132,10 @@ export default function FamilyDashboardPage() {
           <span className="text-[11px] uppercase tracking-wider text-[#7A7A7A] font-semibold">
             Family Members
           </span>
-          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">24 Active</p>
-          <span className="text-[11px] text-emerald-600 font-medium">3 pending invitations</span>
+          <p className="font-serif text-2xl font-bold text-[#2B2B2B] mt-1">
+            {memberCount} Active
+          </p>
+          <span className="text-[11px] text-emerald-600 font-medium">Verified members</span>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-[#EAE3D6] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">

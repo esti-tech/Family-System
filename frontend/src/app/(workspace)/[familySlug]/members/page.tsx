@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import {
   Users,
@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface MemberItem {
   id: string;
@@ -35,7 +36,7 @@ export default function FamilyMembersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
 
-  const members: MemberItem[] = [
+  const DEFAULT_MEMBERS: MemberItem[] = [
     {
       id: "m-1",
       name: "Selam Bekele",
@@ -89,9 +90,31 @@ export default function FamilyMembersPage() {
       role: "MEMBER",
       kinship: "Cousin",
       status: "ACTIVE",
-      joinedDate: "Nov 20, 2026",
+      joinedDate: "Nov 19, 2026",
     },
   ];
+
+  const [members, setMembers] = useState<MemberItem[]>(DEFAULT_MEMBERS);
+
+  useEffect(() => {
+    async function fetchLiveMembers() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/members`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const liveMembers: MemberItem[] = res.data.map((m: any) => ({
+          id: m.id,
+          name: m.user?.full_name || m.nickname || "Family Relative",
+          email: m.user?.email || "",
+          role: (m.role?.name?.toUpperCase().includes("ADMIN") ? "ADMIN" : m.role?.name?.toUpperCase().includes("OWNER") ? "OWNER" : "MEMBER") as any,
+          kinship: m.nickname || "Relative",
+          status: m.status || "ACTIVE",
+          joinedDate: new Date(m.joined_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          isCurrentUser: false,
+        }));
+        setMembers(liveMembers);
+      }
+    }
+    fetchLiveMembers();
+  }, [slug]);
 
   const pendingInvitations: MemberItem[] = [
     {

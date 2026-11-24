@@ -22,13 +22,17 @@ export default function InviteMemberPage() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [generatedInviteLink, setGeneratedInviteLink] = useState("");
 
-  const inviteLink = `http://localhost:3000/invitations/inv-${slug}-x9q2`;
+  const inviteLink = generatedInviteLink || (typeof window !== "undefined" ? `${window.location.origin}/invitations/inv-${slug}-preview` : "");
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleSendInvite = async (e: React.FormEvent) => {
@@ -36,20 +40,26 @@ export default function InviteMemberPage() {
     if (!email) return;
 
     setLoading(true);
+    setErrorMessage("");
 
-    const res = await apiRequest(`/api/v1/families/${slug}/invitations`, {
+    const res = await apiRequest(`/api/v1/families/by-slug/${slug}/invitations`, {
       method: "POST",
       body: JSON.stringify({
         email,
-        full_name: fullName,
-        kinship_relation: kinship,
         role,
-        personal_note: message,
       }),
     });
 
     setLoading(false);
-    setSentSuccess(true);
+
+    if (res.success && res.data) {
+      if (res.data.invitation_token && typeof window !== "undefined") {
+        setGeneratedInviteLink(`${window.location.origin}/invitations/${res.data.invitation_token}`);
+      }
+      setSentSuccess(true);
+    } else {
+      setErrorMessage(res.error?.message || "Failed to dispatch invitation.");
+    }
   };
 
   return (
@@ -74,8 +84,21 @@ export default function InviteMemberPage() {
             Invitation Dispatched
           </h2>
           <p className="text-xs text-[#5A5A5A] max-w-sm mx-auto">
-            We’ve sent a private invitation link to <span className="font-semibold text-[#2B2B2B]">{email}</span> with instructions to join as an {role}.
+            We’ve created an invitation for <span className="font-semibold text-[#2B2B2B]">{email}</span> to join as a {role}.
           </p>
+
+          {inviteLink && (
+            <div className="max-w-md mx-auto p-3 bg-[#F6F1E9] rounded-lg border border-[#EAE3D6] flex items-center justify-between space-x-2 text-left">
+              <span className="text-[11px] font-mono text-[#5A5A5A] truncate">{inviteLink}</span>
+              <button
+                onClick={handleCopyLink}
+                className="shrink-0 px-2.5 py-1 rounded bg-[#C18B58] text-white text-[11px] font-medium flex items-center space-x-1"
+              >
+                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copied ? "Copied" : "Copy"}</span>
+              </button>
+            </div>
+          )}
 
           <div className="pt-4 flex justify-center space-x-3">
             <button
@@ -83,6 +106,7 @@ export default function InviteMemberPage() {
                 setSentSuccess(false);
                 setEmail("");
                 setFullName("");
+                setGeneratedInviteLink("");
               }}
               className="px-4 py-2 rounded-md border border-[#D5C9B8] text-xs font-semibold text-[#2B2B2B]"
             >
@@ -109,6 +133,12 @@ export default function InviteMemberPage() {
               They will receive a secure invitation link to join your family space.
             </p>
           </div>
+
+          {errorMessage && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+              {errorMessage}
+            </div>
+          )}
 
           <form onSubmit={handleSendInvite} className="space-y-5">
             {/* Full Name & Email */}

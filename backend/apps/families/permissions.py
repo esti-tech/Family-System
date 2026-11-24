@@ -5,14 +5,22 @@ class IsFamilyMember(permissions.BasePermission):
     """Verifies the authenticated user is an active member of the family."""
     def has_permission(self, request, view):
         family_id = view.kwargs.get('family_id') or view.kwargs.get('id')
-        if not family_id or not request.user or not request.user.is_authenticated:
+        slug = view.kwargs.get('slug')
+        if not (family_id or slug) or not request.user or not request.user.is_authenticated:
             return False
 
+        filter_kwargs = {
+            'user': request.user,
+            'status': FamilyMembership.MembershipStatus.ACTIVE
+        }
+        if family_id:
+            filter_kwargs['family_id'] = family_id
+        elif slug:
+            filter_kwargs['family__slug'] = slug
+
         membership = FamilyMembership.objects.filter(
-            family_id=family_id,
-            user=request.user,
-            status=FamilyMembership.MembershipStatus.ACTIVE
-        ).select_related('role').first()
+            **filter_kwargs
+        ).select_related('role', 'family').first()
 
         if not membership:
             return False

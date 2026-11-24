@@ -50,12 +50,12 @@ class FamilyDetailView(APIView):
     permission_classes = [IsFamilyMember]
 
     @extend_schema(responses={200: FamilySerializer})
-    def get(self, request, id):
+    def get(self, request, *args, **kwargs):
         """Fetches family workspace profile and configuration."""
         return success_response(data=FamilySerializer(request.family).data)
 
     @extend_schema(request=CreateFamilySerializer, responses={200: FamilySerializer})
-    def patch(self, request, id):
+    def patch(self, request, *args, **kwargs):
         """Updates workspace metadata (Admin or Owner only)."""
         if not IsFamilyAdmin().has_permission(request, self):
             return Response({
@@ -75,7 +75,7 @@ class FamilyDetailView(APIView):
 
         return success_response(data=FamilySerializer(family).data, message="Workspace updated successfully.")
 
-    def delete(self, request, id):
+    def delete(self, request, *args, **kwargs):
         """Permanently deletes a family workspace (Owner only)."""
         if not IsFamilyOwner().has_permission(request, self):
             return Response({
@@ -90,7 +90,7 @@ class FamilyMemberListView(APIView):
     permission_classes = [IsFamilyMember]
 
     @extend_schema(responses={200: FamilyMembershipSerializer(many=True)})
-    def get(self, request, id):
+    def get(self, request, *args, **kwargs):
         """Lists active members of this family workspace."""
         members = FamilyMembership.objects.filter(
             family=request.family,
@@ -99,7 +99,8 @@ class FamilyMemberListView(APIView):
         return success_response(data=FamilyMembershipSerializer(members, many=True).data)
 
     @extend_schema(request=InviteMemberSerializer)
-    def post(self, request, id):
+    def post(self, request, *args, **kwargs):
+
         """Invites a new member by email (Admin or Owner only)."""
         if not IsFamilyAdmin().has_permission(request, self):
             return Response({
@@ -195,10 +196,28 @@ class InvitationAcceptView(APIView):
             message=f"Welcome to the {membership.family.name} family workspace!"
         )
 
+class InvitationDeclineView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, token):
+        """Decline / reject an invitation."""
+        token_h = hash_token(token)
+        invitation = FamilyInvitation.objects.filter(
+            token_hash=token_h,
+            status=FamilyInvitation.InvitationStatus.PENDING
+        ).first()
+
+        if not invitation or not invitation.is_valid:
+            return Response({"success": False, "error": {"code": "INVALID_TOKEN", "message": "This invitation link is invalid or has expired."}}, status=status.HTTP_404_NOT_FOUND)
+
+        invitation.status = FamilyInvitation.InvitationStatus.REVOKED
+        invitation.save(update_fields=['status'])
+        return success_response(message="Invitation declined.")
+
 class FamilyDashboardSummaryView(APIView):
     permission_classes = [IsFamilyMember]
 
-    def get(self, request, id):
+    def get(self, request, id=None, slug=None):
         """Aggregates high-level metrics for the workspace dashboard."""
         family = request.family
         member_count = family.memberships.filter(status=FamilyMembership.MembershipStatus.ACTIVE).count()
@@ -216,3 +235,4 @@ class FamilyDashboardSummaryView(APIView):
             "storage_used_bytes": 0,
             "storage_limit_bytes": 2 * 1024 * 1024 * 1024, # 2 GB default
         })
+
