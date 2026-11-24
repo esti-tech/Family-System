@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -11,16 +11,29 @@ import {
   Sparkles,
   Users,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
+
+interface RelativeOption {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface KinshipResult {
+  title: string;
+  amharic: string;
+  degree: string;
+  description?: string;
+  path: string[];
+}
 
 export default function KinshipCalculatorPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
 
-  const [personA, setPersonA] = useState("p-selam");
-  const [personB, setPersonB] = useState("p-aster");
-
-  const relatives = [
+  const [relatives, setRelatives] = useState<RelativeOption[]>([
     { id: "p-selam", name: "Selam Mekonnen", role: "You" },
     { id: "p-dawit", name: "Dawit Mekonnen", role: "Father" },
     { id: "p-hana", name: "Hana Mekonnen", role: "Mother" },
@@ -30,10 +43,69 @@ export default function KinshipCalculatorPage() {
     { id: "p-abebe", name: "Abebe Tesfaye", role: "Uncle" },
     { id: "p-yonas", name: "Yonas Mekonnen", role: "Brother" },
     { id: "p-meron", name: "Meron Tesfaye", role: "Cousin" },
-  ];
+  ]);
 
-  // Kinship lookup engine
-  const getKinshipData = (a: string, b: string) => {
+  const [personA, setPersonA] = useState("p-selam");
+  const [personB, setPersonB] = useState("p-aster");
+  const [calculating, setCalculating] = useState(false);
+  const [liveResult, setLiveResult] = useState<KinshipResult | null>(null);
+
+  // Fetch live persons list on mount
+  useEffect(() => {
+    async function fetchRelatives() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/persons/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const liveRel: RelativeOption[] = res.data.map((p: any) => ({
+          id: p.id,
+          name: p.full_name || p.first_name,
+          role: p.cultural_titles || `Gen ${p.generation_level || 1}`,
+        }));
+        setRelatives(liveRel);
+        if (liveRel.length >= 2) {
+          setPersonA(liveRel[0].id);
+          setPersonB(liveRel[1].id);
+        }
+      }
+    }
+    fetchRelatives();
+  }, [slug]);
+
+  // Dynamic kinship calculation
+  useEffect(() => {
+    async function computeKinship() {
+      if (!personA || !personB) return;
+      // If mock IDs, use client-side table fallback
+      if (personA.startsWith("p-") || personB.startsWith("p-")) {
+        setLiveResult(null);
+        return;
+      }
+
+      setCalculating(true);
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/kinship/calculate/`, {
+        method: "POST",
+        body: JSON.stringify({ person_a_id: personA, person_b_id: personB }),
+      });
+      setCalculating(false);
+
+      if (res.success && res.data) {
+        setLiveResult({
+          title: res.data.relationship_en,
+          amharic: res.data.relationship_am,
+          degree: `${res.data.degree}th Degree Kinship (${res.data.relationship_code})`,
+          description: res.data.description,
+          path: res.data.common_ancestor
+            ? ["Person A", `Common Ancestor: ${res.data.common_ancestor.name}`, "Person B"]
+            : ["Direct Lineage Link"],
+        });
+      }
+    }
+    computeKinship();
+  }, [slug, personA, personB]);
+
+  // Fallback client lookup engine
+  const getKinshipData = (a: string, b: string): KinshipResult => {
+    if (liveResult) return liveResult;
+
     if (a === b) {
       return {
         title: "Self",
@@ -61,40 +133,6 @@ export default function KinshipCalculatorPage() {
       };
     }
 
-    if ((a === "p-selam" && b === "p-meron") || (a === "p-meron" && b === "p-selam")) {
-      return {
-        title: "First Cousin (Maternal/Paternal Parallel)",
-        amharic: "የአክስት ልጅ",
-        degree: "4th Degree Collateral Kin",
-        path: [
-          "Selam Mekonnen",
-          "Dawit Mekonnen (Father)",
-          "Elias & Aster (Shared Grandparents)",
-          "Tigist Alemu (Aunt)",
-          "Meron Tesfaye (Daughter of Tigist)",
-        ],
-      };
-    }
-
-    if ((a === "p-selam" && b === "p-tigist") || (a === "p-tigist" && b === "p-selam")) {
-      return {
-        title: a === "p-selam" ? "Paternal Aunt" : "Niece",
-        amharic: a === "p-selam" ? "አክስት (የአባት እህት)" : "የወንድም ልጅ",
-        degree: "3rd Degree Collateral Kin",
-        path: ["Selam Mekonnen", "Dawit Mekonnen (Father)", "Tigist Alemu (Sister of Father)"],
-      };
-    }
-
-    if ((a === "p-selam" && b === "p-yonas") || (a === "p-yonas" && b === "p-selam")) {
-      return {
-        title: a === "p-selam" ? "Full Brother" : "Full Sister",
-        amharic: a === "p-selam" ? "ወንድም" : "እህት",
-        degree: "2nd Degree Collateral Kin",
-        path: ["Selam Mekonnen", "Dawit & Hana (Shared Parents)", "Yonas Mekonnen"],
-      };
-    }
-
-    // Default fallback
     return {
       title: "Direct Family Relative",
       amharic: "የቅርብ ቤተሰብ",
@@ -103,7 +141,7 @@ export default function KinshipCalculatorPage() {
     };
   };
 
-  const kinshipResult = getKinshipData(personA, personB);
+  const kinshipResult = liveResult || getKinshipData(personA, personB);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-16">

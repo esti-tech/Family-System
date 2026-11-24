@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   GitFork,
@@ -23,7 +23,9 @@ import {
   Calculator,
   Clock,
   Sparkles,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface PersonNode {
   id: string;
@@ -233,12 +235,54 @@ export default function FamilyTreePage() {
     },
   ]);
 
-  const handleAddPerson = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function loadTree() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/tree/`);
+      if (res.success && res.data && Array.isArray(res.data.nodes) && res.data.nodes.length > 0) {
+        const liveNodes: PersonNode[] = res.data.nodes.map((n: any) => ({
+          id: n.id,
+          firstName: n.data.firstName || (n.data.fullName ? n.data.fullName.split(" ")[0] : "Relative"),
+          patronymic: n.data.fatherName || "",
+          familyName: n.data.fullName ? (n.data.fullName.split(" ")[2] || "") : "",
+          amharicName: n.data.culturalTitles || "",
+          birthYear: n.data.birthYear ? String(n.data.birthYear) : "Unknown",
+          deathYear: n.data.deathYear ? String(n.data.deathYear) : undefined,
+          isLiving: n.data.isLiving !== false,
+          gender: n.data.gender === "FEMALE" ? "FEMALE" : "MALE",
+          generation: (n.data.generationLevel === 1 ? 1 : n.data.generationLevel === 2 ? 2 : 3) as 1 | 2 | 3,
+          relationshipToUser: n.data.culturalTitles || "Relative",
+          ethiopianKinship: n.data.culturalTitles || "ዘመድ",
+          birthPlace: n.data.birthPlace || "Ethiopia",
+          bio: n.data.biography || "Family member in KinKeep tree.",
+          avatarColor: n.data.gender === "FEMALE" ? "bg-[#B5838D]" : "bg-[#8B5E3C]",
+        }));
+        setPersons(liveNodes);
+      }
+    }
+    loadTree();
+  }, [slug]);
+
+  const handleAddPerson = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFirstName) return;
 
+    const payload = {
+      first_name: newFirstName,
+      father_name: newPatronymic || "Dawit",
+      grandfather_name: newFamilyName || "Mekonnen",
+      gender: newGender,
+      birth_year: newBirthYear ? parseInt(newBirthYear) : undefined,
+      birth_place: newBirthPlace,
+      generation_level: newRelation === "Parent" ? 2 : 3,
+    };
+
+    const res = await apiRequest(`/api/v1/families/by-slug/${slug}/persons/`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
     const newPerson: PersonNode = {
-      id: `p-${Date.now()}`,
+      id: res.data?.id || `p-${Date.now()}`,
       firstName: newFirstName,
       patronymic: newPatronymic || "Dawit",
       familyName: newFamilyName || "Mekonnen",
@@ -250,7 +294,7 @@ export default function FamilyTreePage() {
       ethiopianKinship: newRelation,
       birthPlace: newBirthPlace,
       bio: "Recently added family member.",
-      avatarColor: "bg-[#C18B58]",
+      avatarColor: newGender === "FEMALE" ? "bg-[#B5838D]" : "bg-[#C18B58]",
       parentIds: [newParentId],
     };
 

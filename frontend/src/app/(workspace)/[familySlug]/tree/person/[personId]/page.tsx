@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -16,7 +16,15 @@ import {
   Sparkles,
   Share2,
   Edit,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
+
+interface RelativeLink {
+  id: string;
+  name: string;
+  relation: string;
+}
 
 export default function PersonProfilePage() {
   const params = useParams();
@@ -24,9 +32,24 @@ export default function PersonProfilePage() {
   const personId = (params?.personId as string) || "p-aster";
 
   const [activeTab, setActiveTab] = useState<"bio" | "family" | "memories" | "timeline">("bio");
+  const [loading, setLoading] = useState(false);
+  const [livePerson, setLivePerson] = useState<any | null>(null);
 
-  // Person Details (Default: Grandmother Aster Gebre)
-  const person = {
+  useEffect(() => {
+    async function loadPerson() {
+      if (!personId || personId.startsWith("p-")) return;
+      setLoading(true);
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/persons/${personId}/`);
+      if (res.success && res.data) {
+        setLivePerson(res.data);
+      }
+      setLoading(false);
+    }
+    loadPerson();
+  }, [slug, personId]);
+
+  // Default fallback details (Grandmother Aster Gebre)
+  const defaultPerson = {
     id: personId,
     name: "Aster Gebre Mariam",
     amharicName: "አስቴር ገብረ ማርያም",
@@ -75,6 +98,25 @@ export default function PersonProfilePage() {
       { year: "2021", event: "Passed peacefully in Addis Ababa surrounded by children and grandchildren." },
     ],
   };
+
+  const person = livePerson
+    ? {
+        ...defaultPerson,
+        name: livePerson.full_name || livePerson.first_name,
+        amharicName: livePerson.cultural_titles || "",
+        lifespan: `${livePerson.birth_year || "Unknown"} – ${livePerson.is_living ? "Present" : livePerson.death_year || "Deceased"}`,
+        kinship: livePerson.cultural_titles || `Generation ${livePerson.generation_level || 1}`,
+        birthDate: livePerson.birth_date || `${livePerson.birth_year || "Unknown"}`,
+        birthPlace: livePerson.birth_place || "Ethiopia",
+        bio: livePerson.biography || defaultPerson.bio,
+        parents: Array.isArray(livePerson.parents)
+          ? livePerson.parents.map((p: any) => ({ id: p.id, name: p.full_name, relation: "Parent" }))
+          : defaultPerson.parents,
+        children: Array.isArray(livePerson.children)
+          ? livePerson.children.map((c: any) => ({ id: c.id, name: c.full_name, relation: "Child" }))
+          : defaultPerson.children,
+      }
+    : defaultPerson;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-16">
@@ -231,7 +273,7 @@ export default function PersonProfilePage() {
             {/* Parents */}
             <div className="p-4 rounded-xl bg-[#F6F1E9]/40 border border-[#EAE3D6] space-y-2">
               <span className="text-[10px] uppercase font-bold text-[#7A7A7A]">Parents</span>
-              {person.parents.map((p, i) => (
+              {person.parents.map((p: RelativeLink, i: number) => (
                 <div key={i}>
                   <p className="font-serif font-bold text-xs text-[#2B2B2B]">{p.name}</p>
                   <p className="text-[10px] text-[#7A7A7A]">{p.relation}</p>
@@ -243,7 +285,7 @@ export default function PersonProfilePage() {
             <div className="sm:col-span-2 p-4 rounded-xl bg-[#F6F1E9]/40 border border-[#EAE3D6] space-y-2">
               <span className="text-[10px] uppercase font-bold text-[#7A7A7A]">Children & Descendants</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                {person.children.map((c, i) => (
+                {person.children.map((c: RelativeLink, i: number) => (
                   <div key={i} className="p-2.5 rounded-lg bg-white border border-[#EAE3D6]">
                     <p className="font-serif font-bold text-xs text-[#2B2B2B]">{c.name}</p>
                     <p className="text-[10px] text-[#7A7A7A]">{c.relation}</p>

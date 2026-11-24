@@ -13,6 +13,7 @@ urlpatterns = [
     # API v1 Versioned Endpoints
     path('api/v1/auth/', include('apps.accounts.urls')),
     path('api/v1/families/', include('apps.families.urls')),
+    path('api/v1/families/', include('apps.genealogy.urls')),
     path('api/v1/invitations/', include('apps.families.urls')),
 
 ]

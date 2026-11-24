@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -13,11 +13,13 @@ import {
   AlertCircle,
   UserPlus,
   Shield,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface TreeProposal {
   id: string;
-  type: "ADD_PERSON" | "CONNECT_PARENT_CHILD" | "UPDATE_BIO";
+  type: string;
   personName: string;
   proposedBy: string;
   relationshipSummary: string;
@@ -31,6 +33,7 @@ export default function TreeProposalsPage() {
   const slug = (params?.familySlug as string) || "bekele-family";
 
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
+  const [loading, setLoading] = useState(true);
 
   const [proposals, setProposals] = useState<TreeProposal[]>([
     {
@@ -65,13 +68,47 @@ export default function TreeProposalsPage() {
     },
   ]);
 
-  const handleApprove = (id: string) => {
+  useEffect(() => {
+    async function fetchProposals() {
+      setLoading(true);
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/tree/proposals/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const liveProposals: TreeProposal[] = res.data.map((p: any) => ({
+          id: p.id,
+          type: p.change_type,
+          personName: p.target_person_name || p.payload?.first_name || "New Person",
+          proposedBy: p.proposed_by_email,
+          relationshipSummary: p.change_type.replace(/_/g, " "),
+          details: JSON.stringify(p.payload),
+          timestamp: new Date(p.created_at).toLocaleDateString(),
+          status: p.status,
+        }));
+        setProposals(liveProposals);
+      }
+      setLoading(false);
+    }
+    fetchProposals();
+  }, [slug]);
+
+  const handleApprove = async (id: string) => {
+    // If real UUID, dispatch approval to backend
+    if (!id.startsWith("prop-")) {
+      await apiRequest(`/api/v1/families/by-slug/${slug}/tree/proposals/${id}/approve/`, {
+        method: "POST",
+      });
+    }
     setProposals(
       proposals.map((p) => (p.id === id ? { ...p, status: "APPROVED" } : p))
     );
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
+    // If real UUID, dispatch rejection to backend
+    if (!id.startsWith("prop-")) {
+      await apiRequest(`/api/v1/families/by-slug/${slug}/tree/proposals/${id}/reject/`, {
+        method: "POST",
+      });
+    }
     setProposals(
       proposals.map((p) => (p.id === id ? { ...p, status: "REJECTED" } : p))
     );
