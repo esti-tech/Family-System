@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   BookOpen,
@@ -15,7 +15,9 @@ import {
   ArrowRight,
   Coffee,
   Heart,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface StoryItem {
   id: string;
@@ -38,7 +40,7 @@ export default function FamilyStoriesPage() {
   const [activeCategory, setActiveCategory] = useState<"ALL" | "AUDIO" | "RECIPE" | "MIGRATION" | "MEMOIR">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const stories: StoryItem[] = [
+  const [stories, setStories] = useState<StoryItem[]>([
     {
       id: "story-coffee-ceremony",
       title: "The Sunday Morning Coffee Ceremony in Gondar",
@@ -104,7 +106,30 @@ export default function FamilyStoriesPage() {
       hasAudio: false,
       avatarColor: "bg-[#588157]",
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    async function loadStories() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/stories/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const liveItems: StoryItem[] = res.data.map((s: any) => ({
+          id: s.slug || s.id,
+          title: s.title,
+          amharicTitle: s.title_amharic,
+          storyteller: s.narrator_name || s.author_name || "Family Elder",
+          role: s.era || "Heritage Oral Record",
+          date: new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          category: s.category === "ORAL_HISTORY" ? "AUDIO" : s.category === "RECIPE" ? "RECIPE" : s.category === "MIGRATION" ? "MIGRATION" : "MEMOIR",
+          durationOrReadTime: s.audio_duration_seconds ? `${Math.round(s.audio_duration_seconds / 60)} min audio` : "5 min read",
+          excerpt: s.summary || s.content?.slice(0, 160) + "...",
+          hasAudio: Boolean(s.audio_url),
+          avatarColor: s.audio_url ? "bg-[#A75D5D]" : "bg-[#C18B58]",
+        }));
+        setStories(liveItems);
+      }
+    }
+    loadStories();
+  }, [slug]);
 
   const filtered = stories.filter((s) => {
     const matchesCat = activeCategory === "ALL" || s.category === activeCategory;

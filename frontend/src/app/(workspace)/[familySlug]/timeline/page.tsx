@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Clock,
@@ -14,7 +14,9 @@ import {
   Compass,
   ArrowLeft,
   X,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface Milestone {
   id: string;
@@ -114,9 +116,41 @@ export default function FamilyTimelinePage() {
     },
   ]);
 
-  const handleAddMilestone = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function loadMilestones() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/timeline/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const liveMilestones: Milestone[] = res.data.map((m: any) => ({
+          id: m.id,
+          year: String(m.year),
+          exactDate: m.is_approximate_date ? `Circa ${m.year}` : (m.date || String(m.year)),
+          title: m.title,
+          location: m.location || "Ethiopia",
+          category: (m.category === "FOUNDATION" ? "ACHIEVEMENT" : m.category === "MARRIAGE" ? "WEDDING" : m.category) as any,
+          description: m.description,
+          relatives: ["Family Member"],
+        }));
+        setMilestones(liveMilestones);
+      }
+    }
+    loadMilestones();
+  }, [slug]);
+
+  const handleAddMilestone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle || !newYear) return;
+
+    await apiRequest(`/api/v1/families/by-slug/${slug}/timeline/`, {
+      method: "POST",
+      body: JSON.stringify({
+        title: newTitle,
+        year: parseInt(newYear),
+        location: newLocation,
+        category: newCategory === "WEDDING" ? "MARRIAGE" : newCategory === "ACHIEVEMENT" ? "FOUNDATION" : newCategory,
+        description: newDesc,
+        is_approximate_date: true,
+      }),
+    });
 
     const newItem: Milestone = {
       id: `m-${Date.now()}`,

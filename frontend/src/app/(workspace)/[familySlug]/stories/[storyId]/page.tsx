@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import {
@@ -16,7 +16,9 @@ import {
   Sparkles,
   Heart,
   MessageSquare,
+  Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function StoryReaderPage() {
   const params = useParams();
@@ -27,8 +29,20 @@ export default function StoryReaderPage() {
   const [currentProgress, setCurrentProgress] = useState(35);
   const [playbackSpeed, setPlaybackSpeed] = useState("1.0x");
   const [languageMode, setLanguageMode] = useState<"EN" | "AM">("EN");
+  const [liveStory, setLiveStory] = useState<any | null>(null);
 
-  const story = {
+  useEffect(() => {
+    async function loadStory() {
+      if (!storyId || storyId.startsWith("story-")) return;
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/stories/${storyId}/`);
+      if (res.success && res.data) {
+        setLiveStory(res.data);
+      }
+    }
+    loadStory();
+  }, [slug, storyId]);
+
+  const defaultStory = {
     title: "The Sunday Morning Coffee Ceremony in Gondar",
     amharicTitle: "የጎንደር የሰንበት ጠዋት የቡና ቁርስ",
     storyteller: "Almaz Tesfaye",
@@ -56,6 +70,22 @@ My father would sip the first cup, Abol, in quiet contemplation. 'Abol is for th
 
 "መንገዳችሁ የቀና ይሁን። በቤታችሁ ሰላም ይስፈን። ዛሬ የምንጠጣው አንድነታችንን ለዘላለም ያጽና።"`,
   };
+
+  const story = liveStory
+    ? {
+        title: liveStory.title,
+        amharicTitle: liveStory.title_amharic || defaultStory.amharicTitle,
+        storyteller: liveStory.narrator_name || liveStory.author_name || "Family Elder",
+        role: liveStory.era || "Heritage Oral Record",
+        avatarColor: liveStory.audio_url ? "bg-[#A75D5D]" : "bg-[#C18B58]",
+        date: new Date(liveStory.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+        duration: liveStory.audio_duration_seconds ? `${Math.round(liveStory.audio_duration_seconds / 60)} min audio recording` : "5 min read",
+        location: liveStory.location_name || "Ethiopia",
+        audioTimestamp: "00:00 / " + (liveStory.audio_duration_seconds ? `${Math.round(liveStory.audio_duration_seconds / 60)}:00` : "05:00"),
+        contentEn: liveStory.content || defaultStory.contentEn,
+        contentAm: liveStory.content_amharic || defaultStory.contentAm,
+      }
+    : defaultStory;
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-16">

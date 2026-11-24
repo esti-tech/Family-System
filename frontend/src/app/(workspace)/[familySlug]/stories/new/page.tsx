@@ -14,6 +14,7 @@ import {
   Save,
   Loader2,
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function CreateStoryPage() {
   const params = useParams();
@@ -53,13 +54,30 @@ export default function CreateStoryPage() {
     }
   };
 
-  const handlePublish = (e: React.FormEvent) => {
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    const res = await apiRequest(`/api/v1/families/by-slug/${slug}/stories/`, {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        title_amharic: amharicTitle,
+        narrator_name: storyteller,
+        content: content || "Family oral history narrative.",
+        category: category === "AUDIO" ? "ORAL_HISTORY" : category,
+        status: "PUBLISHED",
+        audio_url: hasRecordedAudio ? "https://storage.kinkeep.com/audio/voice_recording.mp3" : "",
+        audio_duration_seconds: recordSeconds > 0 ? recordSeconds : undefined,
+      }),
+    });
+
+    setLoading(false);
+    if (res.success) {
       router.push(`/${slug}/stories`);
-    }, 1200);
+    } else {
+      alert(res.error?.message || "Failed to publish story.");
+    }
   };
 
   return (
