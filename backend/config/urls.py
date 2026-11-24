@@ -15,6 +15,11 @@ urlpatterns = [
     path('api/v1/families/', include('apps.families.urls')),
     path('api/v1/families/', include('apps.genealogy.urls')),
     path('api/v1/families/', include('apps.heritage.urls')),
+    path('api/v1/families/', include('apps.media_storage.urls')),
+    path('api/v1/families/', include('apps.events.urls')),
+    path('api/v1/families/', include('apps.memories.urls')),
+    path('api/v1/families/', include('apps.guest_uploads.urls')),
+    path('api/v1/guest-uploads/', include('apps.guest_uploads.urls')),
     path('api/v1/invitations/', include('apps.families.urls')),
 
 ]

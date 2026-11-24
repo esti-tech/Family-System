@@ -18,6 +18,7 @@ import {
   Upload,
   Info
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 const COVER_PRESETS = [
   { id: "p1", title: "Habesha Wedding & Feast", url: "/assets/images/heritage-wedding.jpeg" },
@@ -56,17 +57,48 @@ export default function CreateEventPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [createdEventSlug, setCreatedEventSlug] = useState("");
 
-  const handleNext = (e: React.FormEvent) => {
+  const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
     if (step < 3) {
       setStep((step + 1) as 1 | 2 | 3);
     } else {
       setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setIsSuccess(true);
-      }, 700);
+      const eventTypeMap: Record<string, string> = {
+        holiday: "HOLIDAY",
+        wedding: "WEDDING",
+        birthday: "BIRTHDAY",
+        reunion: "REUNION",
+        memorial: "MEMORIAL"
+      };
+
+      const payload = {
+        title: title || "Family Gathering",
+        title_amharic: titleAmharic,
+        event_type: eventTypeMap[category] || "CELEBRATION",
+        start_datetime: `${date}T${startTime || "10:00"}:00Z`,
+        end_datetime: endTime ? `${date}T${endTime}:00Z` : undefined,
+        location_name: venueName,
+        location_address: address,
+        location_city: city,
+        description,
+        cover_image_url: selectedCover,
+        enable_guest_uploads: enableQrGuestUpload,
+        require_guest_upload_moderation: requireModeration
+      };
+
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/events/`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      setIsSubmitting(false);
+      if (res.success && res.data) {
+        setCreatedEventSlug(res.data.slug || res.data.id);
+      } else {
+        setCreatedEventSlug(title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "event");
+      }
+      setIsSuccess(true);
     }
   };
 
@@ -127,14 +159,14 @@ export default function CreateEventPage() {
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href={`/${slug}/events/timkat-gathering-2026/qr`}
+                href={`/${slug}/events/${createdEventSlug || "timkat-gathering-2026"}/qr`}
                 className="inline-flex items-center gap-2 rounded-xl border border-[#C18B58] bg-[#FAF5EE] px-5 py-2.5 text-xs font-semibold text-[#C18B58] hover:bg-[#F3EAD9]"
               >
                 <QrCode className="h-4 w-4" />
                 <span>View Guest QR Card</span>
               </Link>
               <Link
-                href={`/${slug}/events/timkat-gathering-2026`}
+                href={`/${slug}/events/${createdEventSlug || "timkat-gathering-2026"}`}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#C18B58] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#A97544]"
               >
                 <span>Go to Event Hub</span>

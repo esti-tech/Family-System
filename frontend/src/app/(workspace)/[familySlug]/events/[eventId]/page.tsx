@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -21,20 +21,38 @@ import {
   ExternalLink,
   MessageSquare
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function EventDetailsPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
   const eventId = (params?.eventId as string) || "timkat-gathering-2026";
 
+  const [eventData, setEventData] = useState<any>(null);
   const [rsvpStatus, setRsvpStatus] = useState<"attending" | "declined" | "maybe" | null>("attending");
   const [showRsvpFeedback, setShowRsvpFeedback] = useState(false);
+
+  useEffect(() => {
+    async function loadEvent() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/events/${eventId}/`);
+      if (res.success && res.data) {
+        setEventData(res.data);
+      }
+    }
+    loadEvent();
+  }, [slug, eventId]);
 
   const handleRsvpChange = (status: "attending" | "declined" | "maybe") => {
     setRsvpStatus(status);
     setShowRsvpFeedback(true);
     setTimeout(() => setShowRsvpFeedback(false), 2500);
   };
+
+  const title = eventData?.title || "Bekele Family Timkat Annual Gathering";
+  const titleAmharic = eventData?.title_amharic || "የጥምቀት በዓል የቤተሰብ መሰብሰቢያ — Debre Tabor Heritage Grounds";
+  const coverImage = eventData?.cover_image_url || "/assets/images/feature-events-qr.jpeg";
+  const locationName = eventData?.location_name || "Debre Tabor Heritage Pavilion & Family Grounds";
+  const locationCity = eventData?.location_city || "Debre Tabor, Amhara Region";
 
   return (
     <div className="min-h-screen bg-[#F6F1E9] text-[#2B2B2B]">
@@ -47,7 +65,7 @@ export default function EventDetailsPage() {
             </Link>
             <span>/</span>
             <span className="font-semibold text-[#2B2B2B] truncate max-w-[200px] sm:max-w-none">
-              Bekele Family Timkat Annual Gathering
+              {title}
             </span>
           </div>
 
@@ -66,8 +84,8 @@ export default function EventDetailsPage() {
       {/* Hero Banner */}
       <div className="relative h-72 w-full bg-[#343434] md:h-84">
         <Image
-          src="/assets/images/feature-events-qr.jpeg"
-          alt="Bekele Family Timkat Gathering"
+          src={coverImage}
+          alt={title}
           fill
           className="object-cover opacity-85"
           priority
@@ -88,10 +106,10 @@ export default function EventDetailsPage() {
           </div>
 
           <h1 className="mt-2 font-serif text-2xl font-bold text-white md:text-4xl">
-            Bekele Family Timkat Annual Gathering
+            {title}
           </h1>
           <p className="mt-0.5 text-sm font-medium text-[#F6F1E9]/90 md:text-base">
-            የጥምቀት በዓል የቤተሰብ መሰብሰቢያ — Debre Tabor Heritage Grounds
+            {titleAmharic}
           </p>
         </div>
       </div>

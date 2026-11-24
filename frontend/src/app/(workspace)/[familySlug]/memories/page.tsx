@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -28,6 +28,7 @@ import {
   Volume2,
   Film
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface VaultMemory {
   id: string;
@@ -142,6 +143,7 @@ export default function FamilyMemoriesVaultPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
 
+  const [memories, setMemories] = useState<VaultMemory[]>(MOCK_MEMORIES);
   const [activeType, setActiveType] = useState<string>("all");
   const [selectedEra, setSelectedEra] = useState<string>("all");
   const [selectedPerson, setSelectedPerson] = useState<string>("all");
@@ -149,7 +151,43 @@ export default function FamilyMemoriesVaultPage() {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const filteredMemories = MOCK_MEMORIES.filter((m) => {
+  useEffect(() => {
+    async function loadMemories() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/memories/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const typeMap: Record<string, VaultMemory["type"]> = {
+          PHOTO: "photo",
+          DOCUMENT: "document",
+          AUDIO: "audio",
+          VIDEO: "video"
+        };
+        const live: VaultMemory[] = res.data.map((m: any) => ({
+          id: m.id,
+          title: m.title,
+          titleAmharic: "",
+          type: typeMap[m.media_type] || "photo",
+          imageUrl: m.thumbnail_url || m.media_url || "/assets/images/feature-memory-archive.jpeg",
+          dateGregorian: m.taken_at
+            ? new Date(m.taken_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+            : m.taken_year
+            ? `${m.taken_year}`
+            : "Historic",
+          dateEthiopian: "የኢትዮጵያ ዘመን",
+          era: "2020s-Present",
+          location: m.location_name || "Family Archive",
+          taggedPeople: Array.isArray(m.linked_persons)
+            ? m.linked_persons.map((p: any) => `${p.first_name} ${p.father_name || ""}`.trim())
+            : [],
+          uploader: m.uploader_name || "Family Archive",
+          likesCount: 12
+        }));
+        setMemories(live);
+      }
+    }
+    loadMemories();
+  }, [slug]);
+
+  const filteredMemories = memories.filter((m) => {
     if (activeType !== "all" && m.type !== activeType) return false;
     if (selectedEra !== "all" && m.era !== selectedEra) return false;
     if (selectedPerson !== "all" && !m.taggedPeople.includes(selectedPerson)) return false;

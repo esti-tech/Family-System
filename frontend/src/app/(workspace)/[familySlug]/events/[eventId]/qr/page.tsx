@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import {
   Sparkles,
   ExternalLink
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function EventQrManagementPage() {
   const params = useParams();
@@ -27,10 +28,23 @@ export default function EventQrManagementPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenerateSuccess, setRegenerateSuccess] = useState(false);
+  const [guestToken, setGuestToken] = useState("bkl-timkat-2026-x9q8");
 
-  // Mock token
-  const guestToken = "bkl-timkat-2026-x9q8";
-  const publicUploadUrl = `http://localhost:3000/events/upload/${guestToken}`;
+  useEffect(() => {
+    async function loadTokens() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/events/${eventId}/qr-tokens/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const active = res.data.find((t: any) => t.is_active && !t.is_expired);
+        if (active?.raw_token) {
+          setGuestToken(active.raw_token);
+        }
+      }
+    }
+    loadTokens();
+  }, [slug, eventId]);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+  const publicUploadUrl = `${origin}/events/upload/${guestToken}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUploadUrl);
@@ -38,14 +52,23 @@ export default function EventQrManagementPage() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
     if (confirm("Regenerating the QR code will invalidate previously printed cards. Are you sure?")) {
       setIsRegenerating(true);
-      setTimeout(() => {
-        setIsRegenerating(false);
-        setRegenerateSuccess(true);
-        setTimeout(() => setRegenerateSuccess(false), 3000);
-      }, 800);
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/events/${eventId}/qr-tokens/`, {
+        method: "POST",
+        body: JSON.stringify({
+          label: "Table Tent QR",
+          expires_in_days: 7,
+          max_uploads: 150
+        })
+      });
+      setIsRegenerating(false);
+      if (res.success && res.data?.raw_token) {
+        setGuestToken(res.data.raw_token);
+      }
+      setRegenerateSuccess(true);
+      setTimeout(() => setRegenerateSuccess(false), 3000);
     }
   };
 

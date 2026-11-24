@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   FolderOpen
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface AlbumItem {
   id: string;
@@ -84,9 +85,30 @@ export default function FamilyAlbumsPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
 
+  const [albums, setAlbums] = useState<AlbumItem[]>(MOCK_ALBUMS);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredAlbums = MOCK_ALBUMS.filter((alb) => {
+  useEffect(() => {
+    async function loadAlbums() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/albums/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: AlbumItem[] = res.data.map((a: any) => ({
+          id: a.slug || a.id,
+          title: a.title,
+          titleAmharic: a.title_amharic || "",
+          coverImage: a.cover_image_url || "/assets/images/heritage-elders.jpeg",
+          itemCount: a.memory_count || 0,
+          dateRange: "Archive Collection",
+          description: a.description || "",
+          creator: a.created_by_name || "Family Editor"
+        }));
+        setAlbums(live);
+      }
+    }
+    loadAlbums();
+  }, [slug]);
+
+  const filteredAlbums = albums.filter((alb) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (

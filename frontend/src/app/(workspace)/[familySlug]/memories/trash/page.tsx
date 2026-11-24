@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Info
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface TrashedItem {
   id: string;
@@ -49,21 +50,43 @@ export default function ArchiveTrashPage() {
   const [showEmptyConfirm, setShowEmptyConfirm] = useState(false);
   const [restoredId, setRestoredId] = useState<string | null>(null);
 
-  const handleRestore = (id: string) => {
+  useEffect(() => {
+    async function loadTrash() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/memories/trash/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: TrashedItem[] = res.data.map((m: any) => ({
+          id: m.id,
+          title: m.title || "Archive item",
+          type: m.media_type ? m.media_type.toLowerCase() : "photo",
+          imageUrl: m.thumbnail_url || m.media_url || "/assets/images/heritage-wedding.jpeg",
+          deletedAt: m.trashed_at ? new Date(m.trashed_at).toLocaleDateString() : "Recently",
+          daysRemaining: 30
+        }));
+        setTrashItems(live);
+      }
+    }
+    loadTrash();
+  }, [slug]);
+
+  const handleRestore = async (id: string) => {
     setRestoredId(id);
-    setTimeout(() => {
-      setTrashItems(trashItems.filter((item) => item.id !== id));
-      setRestoredId(null);
-    }, 600);
-  };
-
-  const handlePermanentDelete = (id: string) => {
+    await apiRequest(`/api/v1/families/by-slug/${slug}/memories/trash/${id}/restore/`, { method: "POST" });
     setTrashItems(trashItems.filter((item) => item.id !== id));
+    setRestoredId(null);
   };
 
-  const handleEmptyTrash = () => {
+  const handlePermanentDelete = async (id: string) => {
+    setTrashItems(trashItems.filter((item) => item.id !== id));
+    await apiRequest(`/api/v1/families/by-slug/${slug}/memories/trash/${id}/purge/`, { method: "POST" });
+  };
+
+  const handleEmptyTrash = async () => {
     setTrashItems([]);
     setShowEmptyConfirm(false);
+    await apiRequest(`/api/v1/families/by-slug/${slug}/memories/trash/`, {
+      method: "POST",
+      body: JSON.stringify({ action: "purge_all" })
+    });
   };
 
   return (

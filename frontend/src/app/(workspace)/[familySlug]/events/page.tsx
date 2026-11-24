@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -21,6 +21,7 @@ import {
   CalendarDays,
   List
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface FamilyEvent {
   id: string;
@@ -136,12 +137,50 @@ export default function FamilyEventsPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
 
+  const [events, setEvents] = useState<FamilyEvent[]>(MOCK_EVENTS);
   const [activeTab, setActiveTab] = useState<"all" | "upcoming" | "past">("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
 
-  const filteredEvents = MOCK_EVENTS.filter((evt) => {
+  useEffect(() => {
+    async function fetchEvents() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/events/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: FamilyEvent[] = res.data.map((e: any) => {
+          const typeLower = (e.event_type || "").toLowerCase();
+          const cat = ["holiday", "wedding", "birthday", "reunion", "memorial"].includes(typeLower)
+            ? (typeLower as FamilyEvent["category"])
+            : "holiday";
+          const start = e.start_datetime ? new Date(e.start_datetime) : new Date();
+
+          return {
+            id: e.slug || e.id,
+            title: e.title,
+            titleAmharic: e.title_amharic || "",
+            category: cat,
+            status: e.status === "COMPLETED" ? "past" : "upcoming",
+            dateFormatted: start.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+            ethiopianDate: "የኢትዮጵያ አቆጣጠር",
+            time: start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+            location: e.location_name || e.location_address || "Family Heritage Hall",
+            city: e.location_city || "Addis Ababa",
+            attendeesCount: e.guest_count || 0,
+            rsvpdYesCount: e.attending_count || 0,
+            memoryUploadsCount: 0,
+            qrEnabled: Boolean(e.enable_guest_uploads),
+            coverImage: e.cover_image_url || "/assets/images/feature-events-qr.jpeg",
+            hosts: [{ name: "Family Host" }],
+            description: e.description || ""
+          };
+        });
+        setEvents(live);
+      }
+    }
+    fetchEvents();
+  }, [slug]);
+
+  const filteredEvents = events.filter((evt) => {
     if (activeTab === "upcoming" && evt.status === "past") return false;
     if (activeTab === "past" && evt.status !== "past") return false;
     if (selectedCategory !== "all" && evt.category !== selectedCategory) return false;

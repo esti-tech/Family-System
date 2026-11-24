@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -15,6 +15,7 @@ import {
   Eye,
   AlertCircle
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface PendingSubmission {
   id: string;
@@ -57,20 +58,64 @@ export default function GuestPhotoModerationPage() {
   const [submissions, setSubmissions] = useState<PendingSubmission[]>(MOCK_PENDING);
   const [activePreview, setActivePreview] = useState<PendingSubmission | null>(null);
 
-  const handleApprove = (id: string) => {
+  useEffect(() => {
+    async function loadModerationQueue() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/memories/moderation/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: PendingSubmission[] = res.data.map((m: any) => ({
+          id: m.id,
+          imageUrl: m.thumbnail_url || m.media_url || "/assets/images/final-cta-family.jpeg",
+          uploaderName: m.uploader_name || "Guest Contributor",
+          uploaderKinship: "Event Guest",
+          eventTitle: "Event Memory Archive",
+          submittedAt: new Date(m.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+          note: m.description || "Captured during event celebration.",
+          status: "pending"
+        }));
+        setSubmissions(live);
+      }
+    }
+    loadModerationQueue();
+  }, [slug]);
+
+  const handleApprove = async (id: string) => {
     setSubmissions(
       submissions.map((s) => (s.id === id ? { ...s, status: "approved" } : s))
     );
+    await apiRequest(`/api/v1/families/by-slug/${slug}/memories/moderation/${id}/`, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "APPROVE",
+        notes: "Approved by family moderator"
+      })
+    });
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     setSubmissions(
       submissions.map((s) => (s.id === id ? { ...s, status: "rejected" } : s))
     );
+    await apiRequest(`/api/v1/families/by-slug/${slug}/memories/moderation/${id}/`, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "REJECT",
+        notes: "Declined by family moderator"
+      })
+    });
   };
 
-  const handleApproveAll = () => {
+  const handleApproveAll = async () => {
     setSubmissions(submissions.map((s) => ({ ...s, status: "approved" })));
+    for (const sub of submissions) {
+      if (sub.status === "pending") {
+        await apiRequest(`/api/v1/families/by-slug/${slug}/memories/moderation/${sub.id}/`, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "APPROVE"
+          })
+        });
+      }
+    }
   };
 
   const pendingCount = submissions.filter((s) => s.status === "pending").length;

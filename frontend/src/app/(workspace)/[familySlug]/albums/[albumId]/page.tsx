@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -19,6 +19,7 @@ import {
   Minimize2,
   Pause
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface AlbumPhoto {
   id: string;
@@ -85,8 +86,39 @@ export default function AlbumDetailPage() {
   const slug = (params?.familySlug as string) || "bekele-family";
   const albumId = (params?.albumId as string) || "gondar-ancestral-heritage";
 
+  const [albumData, setAlbumData] = useState<any>(null);
+  const [photos, setPhotos] = useState<AlbumPhoto[]>(ALBUM_PHOTOS);
   const [isSlideshowOpen, setIsSlideshowOpen] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    async function loadAlbum() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/albums/${albumId}/`);
+      if (res.success && res.data) {
+        setAlbumData(res.data);
+        if (Array.isArray(res.data.memories) && res.data.memories.length > 0) {
+          const live: AlbumPhoto[] = res.data.memories.map((m: any) => ({
+            id: m.id,
+            title: m.title,
+            imageUrl: m.thumbnail_url || m.media_url || "/assets/images/heritage-wedding.jpeg",
+            date: m.taken_at
+              ? new Date(m.taken_at).toLocaleDateString()
+              : m.taken_year
+              ? `${m.taken_year}`
+              : "Historic",
+            location: m.location_name || "Family Archive",
+            people: Array.isArray(m.linked_persons)
+              ? m.linked_persons.map((p: any) => `${p.first_name} ${p.father_name || ""}`.trim())
+              : []
+          }));
+          setPhotos(live);
+        }
+      }
+    }
+    loadAlbum();
+  }, [slug, albumId]);
+
+  const albumTitle = albumData?.title || "Gondar Ancestral Heritage";
 
   return (
     <div className="min-h-screen bg-[#F6F1E9] text-[#2B2B2B]">
@@ -107,7 +139,7 @@ export default function AlbumDetailPage() {
                 <span>Gondar Heritage</span>
               </div>
               <h1 className="font-serif text-xl font-bold text-[#2B2B2B]">
-                Gondar Ancestral Heritage
+                {albumTitle}
               </h1>
             </div>
           </div>
@@ -181,7 +213,7 @@ export default function AlbumDetailPage() {
 
         {/* Photos Grid */}
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-          {ALBUM_PHOTOS.map((photo) => (
+          {photos.map((photo) => (
             <Link
               key={photo.id}
               href={`/${slug}/memories/${photo.id}`}
@@ -221,11 +253,11 @@ export default function AlbumDetailPage() {
       </div>
 
       {/* Fullscreen Slideshow */}
-      {isSlideshowOpen && (
+      {isSlideshowOpen && photos.length > 0 && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
           <div className="flex items-center justify-between px-8 py-5">
             <span className="font-serif text-lg font-bold">
-              Gondar Ancestral Heritage • Slideshow ({slideIndex + 1}/{ALBUM_PHOTOS.length})
+              {albumTitle} • Slideshow ({slideIndex + 1}/{photos.length})
             </span>
             <button
               onClick={() => setIsSlideshowOpen(false)}
@@ -237,7 +269,7 @@ export default function AlbumDetailPage() {
 
           <div className="relative flex-1">
             <Image
-              src={ALBUM_PHOTOS[slideIndex].imageUrl}
+              src={photos[slideIndex].imageUrl}
               alt="Album slide"
               fill
               className="object-contain"
@@ -247,19 +279,19 @@ export default function AlbumDetailPage() {
 
           <div className="flex items-center justify-between p-6 bg-gradient-to-t from-black/90 to-transparent">
             <div>
-              <p className="font-serif text-lg font-bold">{ALBUM_PHOTOS[slideIndex].title}</p>
-              <p className="text-xs text-[#C18B58]">{ALBUM_PHOTOS[slideIndex].location} • {ALBUM_PHOTOS[slideIndex].date}</p>
+              <p className="font-serif text-lg font-bold">{photos[slideIndex].title}</p>
+              <p className="text-xs text-[#C18B58]">{photos[slideIndex].location} • {photos[slideIndex].date}</p>
             </div>
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setSlideIndex((prev) => (prev > 0 ? prev - 1 : ALBUM_PHOTOS.length - 1))}
+                onClick={() => setSlideIndex((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
                 className="rounded-xl border border-white/20 px-4 py-2 text-xs font-semibold hover:bg-white/10"
               >
                 Previous
               </button>
               <button
-                onClick={() => setSlideIndex((prev) => (prev + 1) % ALBUM_PHOTOS.length)}
+                onClick={() => setSlideIndex((prev) => (prev + 1) % photos.length)}
                 className="rounded-xl bg-[#C18B58] px-5 py-2 text-xs font-semibold hover:bg-[#A97544]"
               >
                 Next Slide
