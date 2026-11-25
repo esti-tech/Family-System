@@ -20,6 +20,10 @@ urlpatterns = [
     path('api/v1/families/', include('apps.memories.urls')),
     path('api/v1/families/', include('apps.guest_uploads.urls')),
     path('api/v1/guest-uploads/', include('apps.guest_uploads.urls')),
+    path('api/v1/subscriptions/', include('apps.subscriptions.urls')),
+    path('api/v1/families/', include('apps.subscriptions.urls')),
+    path('api/v1/payments/', include('apps.payments.urls')),
+    path('api/v1/families/', include('apps.payments.urls')),
     path('api/v1/invitations/', include('apps.families.urls')),
 
 ]

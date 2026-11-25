@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -16,12 +16,29 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function StorageAllocationPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
 
+  const [storageData, setStorageData] = useState<any>(null);
   const [purchasedAddon, setPurchasedAddon] = useState(false);
+
+  useEffect(() => {
+    async function loadStorage() {
+      const res = await apiRequest(`/api/v1/families/by-slug/${slug}/storage/`);
+      if (res.success && res.data) {
+        setStorageData(res.data);
+      }
+    }
+    loadStorage();
+  }, [slug]);
+
+  const usedGb = storageData?.storage_used_gb ?? 38.4;
+  const limitGb = storageData?.storage_limit_gb ?? 100;
+  const remainingGb = Math.max(0, Math.round((limitGb - usedGb) * 10) / 10);
+  const usagePercent = storageData?.usage_percentage ?? 38.4;
 
   return (
     <div className="min-h-screen bg-[#F6F1E9] text-[#2B2B2B]">
@@ -66,11 +83,11 @@ export default function StorageAllocationPage() {
                 Total Vault Utilization
               </span>
               <h2 className="mt-1 font-serif text-3xl font-bold text-[#2B2B2B]">
-                38.4 GB <span className="text-base font-normal text-[#736B5E]">used of 100 GB</span>
+                {usedGb} GB <span className="text-base font-normal text-[#736B5E]">used of {limitGb} GB</span>
               </h2>
             </div>
             <span className="w-fit rounded-full bg-[#EAF3EC] px-3.5 py-1 text-xs font-bold text-[#4A7C59]">
-              61.6 GB Remaining Free
+              {remainingGb} GB Remaining Free
             </span>
           </div>
 

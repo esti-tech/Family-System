@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   FileText
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface Invoice {
   id: string;
@@ -51,8 +52,42 @@ export default function SubscriptionBillingPage() {
   const params = useParams();
   const slug = (params?.familySlug as string) || "bekele-family";
 
+  const [subData, setSubData] = useState<any>(null);
+  const [storageData, setStorageData] = useState<any>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelSuccess, setCancelSuccess] = useState(false);
+
+  useEffect(() => {
+    async function loadBilling() {
+      const [subRes, storRes, invRes] = await Promise.all([
+        apiRequest(`/api/v1/families/by-slug/${slug}/subscription/`),
+        apiRequest(`/api/v1/families/by-slug/${slug}/storage/`),
+        apiRequest(`/api/v1/families/by-slug/${slug}/invoices/`),
+      ]);
+
+      if (subRes.success && subRes.data) {
+        setSubData(subRes.data);
+      }
+      if (storRes.success && storRes.data) {
+        setStorageData(storRes.data);
+      }
+      if (invRes.success && Array.isArray(invRes.data) && invRes.data.length > 0) {
+        const live: Invoice[] = invRes.data.map((inv: any) => ({
+          id: inv.invoice_number,
+          date: new Date(inv.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          plan: inv.line_items?.[0]?.description || "Subscription Plan",
+          amount: `${inv.amount} ${inv.currency}`,
+          status: inv.status.toLowerCase() === "paid" ? "paid" : "pending",
+          pdfUrl: inv.pdf_url || "#"
+        }));
+        setInvoices(live);
+      }
+    }
+    loadBilling();
+  }, [slug]);
 
   const handleDownloadInvoice = (id: string) => {
     setDownloadingId(id);
@@ -60,6 +95,25 @@ export default function SubscriptionBillingPage() {
       setDownloadingId(null);
     }, 1000);
   };
+
+  const handleConfirmCancel = async () => {
+    setIsCancelling(true);
+    const res = await apiRequest(`/api/v1/families/by-slug/${slug}/subscription/cancel/`, { method: "POST" });
+    setIsCancelling(false);
+    if (res.success) {
+      setCancelSuccess(true);
+      setTimeout(() => {
+        setShowCancelModal(false);
+        setCancelSuccess(false);
+      }, 1500);
+    }
+  };
+
+  const currentPlanName = subData?.plan?.name || "Family Roots";
+  const usedGb = storageData?.storage_used_gb ?? 38.4;
+  const limitGb = storageData?.storage_limit_gb ?? 100;
+  const usagePercent = storageData?.usage_percentage ?? 38;
+  const membersCount = storageData?.active_members_count ?? 14;
 
   return (
     <div className="min-h-screen bg-[#F6F1E9] text-[#2B2B2B]">
@@ -110,7 +164,7 @@ export default function SubscriptionBillingPage() {
                 <span className="text-xs text-[#736B5E]">Annual billing</span>
               </div>
               <h2 className="mt-2 font-serif text-3xl font-bold text-[#2B2B2B]">
-                Family Plus Plan
+                {currentPlanName} Plan
               </h2>
               <p className="mt-1 text-xs text-[#736B5E]">
                 Next renewal: <strong>January 15, 2027</strong> for $95.88 / year (~11,500 ETB)
@@ -143,10 +197,10 @@ export default function SubscriptionBillingPage() {
               <div>
                 <span className="text-[11px] text-[#736B5E]">Vault Storage</span>
                 <p className="font-serif text-lg font-bold text-[#2B2B2B]">
-                  38.4 GB / 100 GB
+                  {usedGb} GB / {limitGb} GB
                 </p>
                 <div className="mt-1.5 h-1.5 w-32 rounded-full bg-[#EAE3D6]">
-                  <div className="h-full rounded-full bg-[#C18B58]" style={{ width: "38%" }} />
+                  <div className="h-full rounded-full bg-[#C18B58]" style={{ width: `${Math.min(usagePercent, 100)}%` }} />
                 </div>
               </div>
               <HardDrive className="h-5 w-5 text-[#C18B58]" />
@@ -156,7 +210,7 @@ export default function SubscriptionBillingPage() {
               <div>
                 <span className="text-[11px] text-[#736B5E]">Family Relatives</span>
                 <p className="font-serif text-lg font-bold text-[#2B2B2B]">
-                  14 Members
+                  {membersCount} Members
                 </p>
                 <p className="text-[10px] text-[#4A7C59]">Unlimited on Plus</p>
               </div>
@@ -200,7 +254,7 @@ export default function SubscriptionBillingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EAE3D6] text-[#2B2B2B]">
-                {MOCK_INVOICES.map((inv) => (
+                {invoices.map((inv) => (
                   <tr key={inv.id} className="transition hover:bg-[#FAF8F5]">
                     <td className="py-4 pl-6 pr-3 font-mono font-semibold">
                       {inv.id}
@@ -258,10 +312,11 @@ export default function SubscriptionBillingPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowCancelModal(false)}
-                className="rounded-xl bg-[#9A3B3B] px-4 py-2 text-xs font-semibold text-white hover:bg-[#802E2E]"
+                onClick={handleConfirmCancel}
+                disabled={isCancelling}
+                className="rounded-xl bg-[#9A3B3B] px-4 py-2 text-xs font-semibold text-white hover:bg-[#802E2E] disabled:opacity-50"
               >
-                Confirm Cancellation
+                {isCancelling ? "Cancelling..." : cancelSuccess ? "Cancelled!" : "Confirm Cancellation"}
               </button>
             </div>
           </div>

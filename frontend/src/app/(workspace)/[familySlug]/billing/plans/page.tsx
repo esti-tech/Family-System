@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Download
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function PlansPricingPage() {
   const params = useParams();
@@ -22,11 +23,22 @@ export default function PlansPricingPage() {
 
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
   const [currency, setCurrency] = useState<"USD" | "ETB">("USD");
+  const [backendPlans, setBackendPlans] = useState<any[]>([]);
 
-  const plans = [
+  useEffect(() => {
+    async function loadPlans() {
+      const res = await apiRequest(`/api/v1/subscriptions/plans/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        setBackendPlans(res.data);
+      }
+    }
+    loadPlans();
+  }, []);
+
+  const defaultPlans = [
     {
-      id: "basic",
-      name: "Basic",
+      id: "free-heritage",
+      name: "Free Heritage",
       tagline: "For your first roots.",
       priceUSD: "$0",
       priceETB: "0 ብር",
@@ -35,27 +47,27 @@ export default function PlansPricingPage() {
       buttonText: "Current Basic Tier",
       buttonVariant: "secondary",
       features: [
-        { label: "Family tree members", val: "Up to 30 people" },
-        { label: "Memory vault storage", val: "5 GB archival storage" },
+        { label: "Family tree members", val: "Up to 5 people" },
+        { label: "Memory vault storage", val: "1 GB archival storage" },
         { label: "Oral stories & audio memos", val: "Up to 5 recordings" },
-        { label: "Event QR uploads", val: "1 active event" },
+        { label: "Event QR uploads", val: "Standard upload" },
         { label: "Offline archive export", val: "Standard HTML" }
       ]
     },
     {
-      id: "plus",
-      name: "Family Plus",
+      id: "family-roots",
+      name: "Family Roots",
       tagline: "For a family growing closer.",
-      priceUSD: billingCycle === "yearly" ? "$7.99" : "$9.99",
-      priceETB: billingCycle === "yearly" ? "950 ብር" : "1,200 ብር",
+      priceUSD: billingCycle === "yearly" ? "$4.00" : "$5.00",
+      priceETB: billingCycle === "yearly" ? "280 ብር" : "350 ብር",
       period: billingCycle === "yearly" ? "per month (billed annually)" : "per month",
       current: true,
       popular: true,
       buttonText: "Your Active Plan",
       buttonVariant: "primary",
       features: [
-        { label: "Family tree members", val: "Unlimited relatives" },
-        { label: "Memory vault storage", val: "100 GB high-res vault" },
+        { label: "Family tree members", val: "Up to 25 relatives" },
+        { label: "Memory vault storage", val: "25 GB high-res vault" },
         { label: "Oral stories & audio memos", val: "Unlimited voice stories" },
         { label: "Event QR guest portals", val: "Unlimited occasions" },
         { label: "Dual English & Amharic AI", val: "Full translation toggle" },
@@ -63,18 +75,18 @@ export default function PlansPricingPage() {
       ]
     },
     {
-      id: "premium",
-      name: "Legacy Premium",
+      id: "dynasty-legacy",
+      name: "Dynasty Legacy",
       tagline: "For a legacy without limits.",
-      priceUSD: billingCycle === "yearly" ? "$19.99" : "$24.99",
-      priceETB: billingCycle === "yearly" ? "2,400 ብር" : "2,900 ብር",
+      priceUSD: billingCycle === "yearly" ? "$10.00" : "$12.00",
+      priceETB: billingCycle === "yearly" ? "680 ብር" : "850 ብር",
       period: billingCycle === "yearly" ? "per month (billed annually)" : "per month",
       current: false,
-      buttonText: "Upgrade to Legacy",
+      buttonText: "Upgrade to Dynasty",
       buttonVariant: "outline",
       features: [
-        { label: "Family tree members", val: "Unlimited relatives & branches" },
-        { label: "Memory vault storage", val: "1 TB archival preservation" },
+        { label: "Family tree members", val: "Up to 100 relatives & branches" },
+        { label: "Memory vault storage", val: "100 GB archival preservation" },
         { label: "Oral stories & audio memos", val: "Studio-quality audio + AI transcripts" },
         { label: "Event QR guest portals", val: "Live TV stream & custom branding" },
         { label: "Printable Keepsake Book", val: "Hardcover PDF generator included" },
@@ -82,6 +94,8 @@ export default function PlansPricingPage() {
       ]
     }
   ];
+
+  const plans = defaultPlans;
 
   return (
     <div className="min-h-screen bg-[#F6F1E9] text-[#2B2B2B]">
