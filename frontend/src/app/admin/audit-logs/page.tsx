@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -12,6 +12,7 @@ import {
   Info,
   CheckCircle2
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface AuditLog {
   id: string;
@@ -72,10 +73,30 @@ const MOCK_AUDIT_LOGS: AuditLog[] = [
 ];
 
 export default function AdminAuditLogsPage() {
+  const [logs, setLogs] = useState<AuditLog[]>(MOCK_AUDIT_LOGS);
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState("all");
 
-  const filteredLogs = MOCK_AUDIT_LOGS.filter((l) => {
+  useEffect(() => {
+    async function loadLogs() {
+      const res = await apiRequest(`/api/v1/platform-admin/audit-logs/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: AuditLog[] = res.data.map((l: any) => ({
+          id: l.id.slice(0, 8),
+          timestamp: new Date(l.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+          actor: l.actor_email || "System",
+          action: l.action.replace(/_/g, " "),
+          target: `${l.target_type}: ${l.target_label || l.target_id}`,
+          ipAddress: l.ip_address || "Internal API",
+          severity: l.action.includes("SUSPEND") ? "warning" : "info"
+        }));
+        setLogs(live);
+      }
+    }
+    loadLogs();
+  }, []);
+
+  const filteredLogs = logs.filter((l) => {
     if (severityFilter !== "all" && l.severity !== severityFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();

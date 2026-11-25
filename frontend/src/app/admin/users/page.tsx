@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -15,6 +15,7 @@ import {
   ArrowUpDown,
   Lock
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface AdminUser {
   id: string;
@@ -102,10 +103,30 @@ const MOCK_ADMIN_USERS: AdminUser[] = [
 ];
 
 export default function AdminUsersPage() {
+  const [users, setUsers] = useState<AdminUser[]>(MOCK_ADMIN_USERS);
   const [filterTab, setFilterTab] = useState<"all" | "active" | "suspended">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredUsers = MOCK_ADMIN_USERS.filter((u) => {
+  useEffect(() => {
+    async function loadUsers() {
+      const res = await apiRequest(`/api/v1/platform-admin/users/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: AdminUser[] = res.data.map((u: any) => ({
+          id: u.id,
+          name: u.full_name || u.email,
+          email: u.email,
+          status: u.status === "SUSPENDED" ? "suspended" : "active",
+          registeredDate: new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          lastActivity: "Recently active",
+          workspacesCount: u.family_count || 1
+        }));
+        setUsers(live);
+      }
+    }
+    loadUsers();
+  }, []);
+
+  const filteredUsers = users.filter((u) => {
     if (filterTab !== "all" && u.status !== filterTab) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();

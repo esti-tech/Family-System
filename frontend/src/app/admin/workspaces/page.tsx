@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Sparkles
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface AdminWorkspace {
   id: string;
@@ -73,10 +74,32 @@ const MOCK_ADMIN_WORKSPACES: AdminWorkspace[] = [
 ];
 
 export default function AdminWorkspacesPage() {
+  const [workspaces, setWorkspaces] = useState<AdminWorkspace[]>(MOCK_ADMIN_WORKSPACES);
   const [searchQuery, setSearchQuery] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
 
-  const filteredWorkspaces = MOCK_ADMIN_WORKSPACES.filter((ws) => {
+  useEffect(() => {
+    async function loadWorkspaces() {
+      const res = await apiRequest(`/api/v1/platform-admin/workspaces/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: AdminWorkspace[] = res.data.map((w: any) => ({
+          id: w.id,
+          name: w.name,
+          slug: w.slug,
+          plan: (w.plan_name === "Dynasty Legacy" ? "Legacy Premium" : w.plan_name === "Family Roots" ? "Family Plus" : "Basic") as any,
+          membersCount: w.member_count || 1,
+          storageUsed: `${w.storage_used_gb || 0} GB`,
+          storageQuota: "100 GB",
+          createdDate: new Date(w.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          adminEmail: "family.admin@kinkeep.family"
+        }));
+        setWorkspaces(live);
+      }
+    }
+    loadWorkspaces();
+  }, []);
+
+  const filteredWorkspaces = workspaces.filter((ws) => {
     if (planFilter !== "all" && ws.plan !== planFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();

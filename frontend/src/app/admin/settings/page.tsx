@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Settings,
@@ -12,6 +12,7 @@ import {
   Sparkles,
   Save
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function AdminSettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -19,11 +20,63 @@ export default function AdminSettingsPage() {
   const [defaultStorageQuota, setDefaultStorageQuota] = useState(5);
   const [sessionTimeoutHours, setSessionTimeoutHours] = useState(24);
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await apiRequest("/platform-admin/settings/");
+        if (res?.data && Array.isArray(res.data)) {
+          const general = res.data.find((s: any) => s.key === "general_operations");
+          if (general?.value) {
+            if (general.value.maintenance_mode !== undefined) {
+              setMaintenanceMode(general.value.maintenance_mode);
+            }
+            if (general.value.allow_registrations !== undefined) {
+              setAllowRegistrations(general.value.allow_registrations);
+            }
+            if (general.value.default_storage_quota_gb !== undefined) {
+              setDefaultStorageQuota(general.value.default_storage_quota_gb);
+            }
+            if (general.value.session_timeout_hours !== undefined) {
+              setSessionTimeoutHours(general.value.session_timeout_hours);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load platform settings:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedFeedback(true);
-    setTimeout(() => setSavedFeedback(false), 2500);
+    setSaving(true);
+    try {
+      await apiRequest("/platform-admin/settings/", {
+        method: "POST",
+        body: JSON.stringify({
+          key: "general_operations",
+          value: {
+            maintenance_mode: maintenanceMode,
+            allow_registrations: allowRegistrations,
+            default_storage_quota_gb: defaultStorageQuota,
+            session_timeout_hours: sessionTimeoutHours,
+          },
+          description: "System-wide general operational thresholds and flags",
+        }),
+      });
+      setSavedFeedback(true);
+      setTimeout(() => setSavedFeedback(false), 3000);
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -127,10 +180,11 @@ export default function AdminSettingsPage() {
 
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#C18B58] px-6 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#A97544]"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#C18B58] px-6 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#A97544] disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              <span>Save System Settings</span>
+              <span>{saving ? "Saving..." : "Save System Settings"}</span>
             </button>
           </div>
         </form>

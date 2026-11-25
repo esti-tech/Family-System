@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   RotateCcw
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function AccountSuspensionPage() {
   const router = useRouter();
@@ -24,16 +25,22 @@ export default function AccountSuspensionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleAction = (e: React.FormEvent) => {
+  const handleAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const endpoint = isSuspended
+      ? `/api/v1/platform-admin/users/${userId}/activate/`
+      : `/api/v1/platform-admin/users/${userId}/suspend/`;
+
+    await apiRequest(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ reason })
+    });
+    setIsSubmitting(false);
+    setSuccess(true);
     setTimeout(() => {
-      setIsSubmitting(false);
-      setSuccess(true);
-      setTimeout(() => {
-        router.push(`/admin/users/${userId}`);
-      }, 1000);
-    }, 700);
+      router.push(`/admin/users`);
+    }, 1000);
   };
 
   return (

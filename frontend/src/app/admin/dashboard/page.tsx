@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -17,11 +17,37 @@ import {
   CheckCircle2,
   Clock
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 export default function AdminDashboardPage() {
   const [timeRange, setTimeRange] = useState<"monthly" | "6M" | "1Y">("monthly");
+  const [dashboardData, setDashboardData] = useState<any>(null);
 
-  const recentActivity = [
+  useEffect(() => {
+    async function loadStats() {
+      const res = await apiRequest(`/api/v1/platform-admin/dashboard/`);
+      if (res.success && res.data) {
+        setDashboardData(res.data);
+      }
+    }
+    loadStats();
+  }, []);
+
+  const metrics = dashboardData?.metrics;
+  const totalUsersDisplay = metrics?.total_users != null ? metrics.total_users.toLocaleString() : "24,892";
+  const totalFamiliesDisplay = metrics?.total_families != null ? metrics.total_families.toLocaleString() : "1,420";
+  const revenueEtbDisplay = metrics?.revenue_etb != null ? `${Number(metrics.revenue_etb).toLocaleString()} ETB` : "2,480,000 ETB";
+  const storageGbDisplay = metrics?.total_storage_gb != null ? `${metrics.total_storage_gb} GB` : "384.2 GB";
+
+  const recentActivity = dashboardData?.recent_audit_logs?.length > 0
+    ? dashboardData.recent_audit_logs.map((log: any) => ({
+        event: log.action.replace(/_/g, " "),
+        ref: log.id.slice(0, 8),
+        name: `${log.target_type}: ${log.target_label || log.target_id}`,
+        time: new Date(log.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        type: log.target_type.toLowerCase()
+      }))
+    : [
     {
       event: "New family workspace registered",
       ref: "WS-8492",
@@ -92,7 +118,7 @@ export default function AdminDashboardPage() {
             <Users className="h-4 w-4 text-[#C18B58]" />
           </div>
           <p className="mt-3 font-serif text-3xl font-bold text-[#2B2B2B]">
-            24,892
+            {totalUsersDisplay}
           </p>
           <div className="mt-2 flex items-center gap-1.5 text-xs text-[#4A7C59]">
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -108,7 +134,7 @@ export default function AdminDashboardPage() {
             <Building2 className="h-4 w-4 text-[#C18B58]" />
           </div>
           <p className="mt-3 font-serif text-3xl font-bold text-[#2B2B2B]">
-            6,418
+            {totalFamiliesDisplay}
           </p>
           <div className="mt-2 flex items-center gap-1.5 text-xs text-[#4A7C59]">
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -140,7 +166,7 @@ export default function AdminDashboardPage() {
             <TrendingUp className="h-4 w-4 text-[#C18B58]" />
           </div>
           <p className="mt-3 font-serif text-3xl font-bold text-[#2B2B2B]">
-            $48,260
+            {revenueEtbDisplay}
           </p>
           <div className="mt-2 flex items-center gap-1.5 text-xs text-[#4A7C59]">
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -286,7 +312,7 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="divide-y divide-[#EAE3D6]">
-          {recentActivity.map((act, idx) => (
+          {recentActivity.map((act: any, idx: number) => (
             <div key={idx} className="flex items-center justify-between p-4 px-6 text-xs hover:bg-[#FAF8F5]">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#FAF5EE] text-[#C18B58]">

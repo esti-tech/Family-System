@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   HelpCircle,
@@ -12,6 +12,7 @@ import {
   ChevronRight,
   MessageSquare
 } from "lucide-react";
+import { apiRequest } from "@/services/api";
 
 interface SupportTicket {
   id: string;
@@ -58,9 +59,30 @@ const MOCK_TICKETS: SupportTicket[] = [
 ];
 
 export default function AdminSupportPage() {
+  const [tickets, setTickets] = useState<SupportTicket[]>(MOCK_TICKETS);
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const filteredTickets = MOCK_TICKETS.filter((t) => {
+  useEffect(() => {
+    async function loadTickets() {
+      const res = await apiRequest(`/api/v1/platform-admin/support/`);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const live: SupportTicket[] = res.data.map((t: any) => ({
+          id: t.ticket_number || t.id.slice(0, 8),
+          subject: t.subject,
+          submitterName: t.user_email?.split("@")[0] || "Customer",
+          submitterEmail: t.user_email || "support@kinkeep.family",
+          workspaceName: t.family_name || "Family Workspace",
+          priority: t.priority?.toLowerCase() === "urgent" ? "urgent" : "normal",
+          status: t.status?.toLowerCase() === "resolved" ? "resolved" : t.status?.toLowerCase() === "in_progress" ? "in_progress" : "open",
+          createdAt: new Date(t.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        }));
+        setTickets(live);
+      }
+    }
+    loadTickets();
+  }, []);
+
+  const filteredTickets = tickets.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     return true;
   });
