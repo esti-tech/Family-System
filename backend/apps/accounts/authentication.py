@@ -27,9 +27,13 @@ class JWTAuthentication(authentication.BaseAuthentication):
                 algorithms=[getattr(settings, 'JWT_ALGORITHM', 'HS256')]
             )
         except jwt.ExpiredSignatureError:
-            raise exceptions.AuthenticationFailed('Access token has expired.')
+            if auth_header:
+                raise exceptions.AuthenticationFailed('Access token has expired.')
+            return None # Expired cookie treated as unauthenticated fallback
         except jwt.InvalidTokenError:
-            raise exceptions.AuthenticationFailed('Invalid access token.')
+            if auth_header:
+                raise exceptions.AuthenticationFailed('Invalid access token.')
+            return None
 
         user_id = payload.get('user_id')
         if not user_id:

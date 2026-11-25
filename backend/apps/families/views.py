@@ -166,6 +166,7 @@ class FamilyMemberDetailView(APIView):
         return success_response(message="Member removed from family workspace.")
 
 class InvitationInspectView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, token):
@@ -197,6 +198,7 @@ class InvitationAcceptView(APIView):
         )
 
 class InvitationDeclineView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, token):

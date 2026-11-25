@@ -15,7 +15,19 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("kinkeep_access_token") : null;
+  const isAuthOrPublicEndpoint =
+    endpoint.includes("/auth/register") ||
+    endpoint.includes("/auth/login") ||
+    endpoint.includes("/auth/refresh") ||
+    endpoint.includes("/auth/verify-email") ||
+    endpoint.includes("/auth/password-reset") ||
+    endpoint.includes("/public/");
+
+  // Only attach Bearer token if NOT an unauthenticated/auth endpoint
+  const token =
+    !isAuthOrPublicEndpoint && typeof window !== "undefined"
+      ? localStorage.getItem("kinkeep_access_token")
+      : null;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -35,6 +47,18 @@ export async function apiRequest<T = any>(
     });
 
     const data = await res.json();
+
+    // Auto-clean stale or expired tokens from local storage
+    if (
+      !res.ok &&
+      typeof window !== "undefined" &&
+      (data.error?.message?.toLowerCase().includes("token has expired") ||
+        data.error?.code === "AUTHENTICATION_FAILED")
+    ) {
+      localStorage.removeItem("kinkeep_access_token");
+      localStorage.removeItem("kinkeep_refresh_token");
+    }
+
     return data;
   } catch (error: any) {
     return {

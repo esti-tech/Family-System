@@ -17,6 +17,7 @@ from apps.accounts.services import (
 )
 
 class RegisterView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     throttle_scope = 'auth_sensitive'
 
@@ -44,6 +45,7 @@ class RegisterView(APIView):
         )
 
 class LoginView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     throttle_scope = 'auth_sensitive'
 
@@ -106,6 +108,7 @@ class LoginView(APIView):
         return response
 
 class RefreshTokenView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(
@@ -159,6 +162,7 @@ class LogoutView(APIView):
         return response
 
 class VerifyEmailView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     throttle_scope = 'auth_sensitive'
 
@@ -185,6 +189,7 @@ class VerifyEmailView(APIView):
         )
 
 class PasswordResetRequestView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     throttle_scope = 'auth_sensitive'
 
@@ -207,6 +212,7 @@ class PasswordResetRequestView(APIView):
         )
 
 class PasswordResetConfirmView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
     throttle_scope = 'auth_sensitive'
 
