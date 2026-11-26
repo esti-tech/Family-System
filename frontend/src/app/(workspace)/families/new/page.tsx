@@ -18,6 +18,7 @@ export default function CreateFamilyPage() {
 
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Step 1 Fields
   const [familyName, setFamilyName] = useState("");
@@ -53,6 +54,7 @@ export default function CreateFamilyPage() {
 
   const handleFinalSubmit = async (skipInvites = false) => {
     setLoading(true);
+    setErrorMsg(null);
 
     // Generate slug
     const slug = familyName
@@ -76,8 +78,21 @@ export default function CreateFamilyPage() {
 
     setLoading(false);
 
+    if (!res.success) {
+      if (
+        res.error?.code === "AUTHENTICATION_FAILED" ||
+        res.error?.code === "NOT_AUTHENTICATED" ||
+        res.error?.message?.toLowerCase().includes("not found")
+      ) {
+        router.push("/login?redirect=/families/new");
+        return;
+      }
+      setErrorMsg(res.error?.message || "Failed to create family workspace.");
+      return;
+    }
+
     // Redirect to the newly created family workspace dashboard
-    const targetSlug = res.data?.slug || slug || "bekele-family";
+    const targetSlug = res.data?.slug || slug;
     router.push(`/${targetSlug}/dashboard`);
   };
 

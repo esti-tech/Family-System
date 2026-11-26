@@ -15,15 +15,15 @@ except ImportError:
     except ImportError:
         HAS_POSTGRES_DRIVER = False
 
-USE_POSTGRES = os.getenv('USE_POSTGRES', 'False').lower() in ('true', '1') and HAS_POSTGRES_DRIVER
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'True').lower() in ('true', '1') and HAS_POSTGRES_DRIVER
 
 if USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DB_NAME', 'kinkeep_db'),
-            'USER': os.getenv('DB_USER', 'kinkeep_admin'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'kinkeep_secure_dev_password_2026'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
         }
